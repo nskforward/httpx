@@ -10,14 +10,13 @@ import (
 )
 
 type Router struct {
-	mu           *http.ServeMux
+	mu           ServeMux
 	loggingFunc  LoggingFunc
 	defaultGroup Group
 }
 
 func NewRouter() *Router {
 	r := &Router{
-		mu:          http.NewServeMux(),
 		loggingFunc: DefaultLoggingFunc,
 	}
 	r.defaultGroup = Group{router: r, middlewares: make([]Middleware, 0, 16)}
@@ -89,13 +88,10 @@ func (ro *Router) PATCH(pattern string, h Handler, middlewares ...Middleware) {
 	ro.defaultGroup.PATCH(pattern, h, middlewares...)
 }
 
-func (ro *Router) registryRoute(route Route) {
-	if ro.mu == nil {
-		ro.mu = http.NewServeMux()
-	}
+func (ro *Router) registryRoute(method string, route Route) {
 	h := route.handler
 	for i := len(route.middlewares) - 1; i >= 0; i-- {
 		h = route.middlewares[i](h)
 	}
-	ro.mu.HandleFunc(route.pattern, ro.Catch(h))
+	ro.mu.Route(method, route.pattern, ro.Catch(h))
 }
