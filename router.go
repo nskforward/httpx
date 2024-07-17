@@ -25,10 +25,22 @@ Patterns can match the method, host and path of a request. Some examples:
 	"/b/{bucket}/o/{objectname...}" matches paths whose first segment is "b" and whose third segment is "o".
 */
 func (router *Router) Route(pattern string, h types.Handler, middlewares ...types.Middleware) {
+	if router.mux == nil {
+		router.mux = http.NewServeMux()
+	}
+	if router.middlewares == nil {
+		router.middlewares = make([]types.Middleware, 0, 8)
+	}
 	router.mux.HandleFunc(pattern, finalHandler(h, router.middlewares, middlewares))
 }
 
 func (router *Router) Group(middleware ...types.Middleware) *Router {
+	if router.mux == nil {
+		router.mux = http.NewServeMux()
+	}
+	if router.middlewares == nil {
+		router.middlewares = make([]types.Middleware, 0, 8)
+	}
 	return &Router{
 		mux:         router.mux,
 		middlewares: append(router.middlewares, middleware...),
@@ -36,6 +48,9 @@ func (router *Router) Group(middleware ...types.Middleware) *Router {
 }
 
 func (router *Router) Use(middlewares ...types.Middleware) {
+	if router.middlewares == nil {
+		router.middlewares = make([]types.Middleware, 0, 8)
+	}
 	router.middlewares = append(router.middlewares, middlewares...)
 }
 
