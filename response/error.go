@@ -1,9 +1,8 @@
-package types
+package response
 
 type Error struct {
-	Status     int
-	Text       string
-	StackTrace string
+	Status int
+	Text   string
 }
 
 func (e Error) Error() string {

@@ -2,10 +2,10 @@ package httpx
 
 import (
 	"crypto/tls"
-	"fmt"
 	"log/slog"
 	"net/http"
 
+	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/transport"
 	"github.com/nskforward/httpx/types"
 )
@@ -82,20 +82,17 @@ func finalHandler(h types.Handler, mw1, mw2 []types.Middleware) http.HandlerFunc
 func catch(next types.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := next(w, r)
-		if err != nil {
-			resp, ok := err.(types.Error)
-			if ok {
-				slog.Error(fmt.Sprintf("http-%d", resp.Status), "error", resp.Text, "trace-id", r.Header.Get(types.XTraceID), "stacktrace", resp.StackTrace)
-				if resp.Text == "" || resp.Status == 500 {
-					http.Error(w, http.StatusText(resp.Status), resp.Status)
-				} else {
-					http.Error(w, resp.Text, resp.Status)
-				}
-			} else {
-				slog.Error("http-400", "error", err.Error(), "trace-id", r.Header.Get(types.XTraceID))
-				http.Error(w, err.Error(), 400)
-			}
+		if err == nil {
+			return
 		}
+		resp, ok := err.(response.Error)
+		if ok {
+			slog.Error("unhandled error", "status", resp.Status, "error", resp.Text)
+			http.Error(w, resp.Text, resp.Status)
+			return
+		}
+		slog.Error("unhandled error", "status", resp.Status, "error", err.Error())
+		http.Error(w, http.StatusText(500), 500)
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nskforward/httpx/types"
+	"github.com/nskforward/httpx/response"
 )
 
 type LB struct {
@@ -183,7 +183,7 @@ func (lb *LB) roundRobin() (*Backend, error) {
 			return backend, nil
 		}
 	}
-	return nil, types.Error{Status: http.StatusBadGateway, Text: "no alive backends"}
+	return nil, response.Error{Status: http.StatusBadGateway, Text: "no alive backends"}
 }
 
 func (lb *LB) ServeHTTP(w http.ResponseWriter, r *http.Request) error {

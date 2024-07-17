@@ -10,6 +10,8 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
+type H map[string]any
+
 func NoContent(w http.ResponseWriter) error {
 	w.WriteHeader(http.StatusNoContent)
 	return nil
