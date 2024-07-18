@@ -29,13 +29,11 @@ func TestProxyLB(t *testing.T) {
 	defer backend1.Close()
 
 	var r httpx.Router
-	r.Use(middleware.Log, middleware.Recovery)
+	r.Use(middleware.Log, middleware.Recovery, middleware.RequestID)
 	r.Route("/api/v1/", proxy.LoadBalancer([]string{backend1.URL, backend2.URL}))
 
 	frontendProxy := httptest.NewServer(&r)
 	defer frontendProxy.Close()
-
-	fmt.Println(frontendProxy.URL)
 
 	DoRequest(frontendProxy, "GET", "/api/v1/user/123", "", http.Header{types.AcceptEncoding: []string{"gzip"}})
 }

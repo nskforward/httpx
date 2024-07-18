@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/nskforward/httpx/types"
 )
@@ -26,6 +25,24 @@ func ServeFile(filePath string) types.Handler {
 	}
 }
 
+/*
+	 	ServeDir servers dir files dynamically based on request URL path:
+
+		file_to_serve = dir_path + url_path
+		file_to_serve = dir_path + StripPrefix(url_path, prefix)
+
+		Route("/", httpx.ServeDir("/data/static"))
+		GET	/1.html	 -->  200 OK  /data/static/1.html
+		GET /2.html	 -->  200 OK  /data/static/2.html
+
+		Route("/data/static", httpx.ServeDir("/data/static"))
+		GET	/data/static/1.html	 -->  404 Not Found  /data/static/data/static/1.html
+		GET /data/static/2.html	 -->  404 Not Found  /data/static/data/static/2.html
+
+		r.Route("/static", httpx.ServeDir("/data/static"), middleware.StripPrefix("/static"))
+		GET	/static/1.html  -->  200 OK  /data/static/1.html
+		GET	/static/2.html  -->  200 OK  /data/static/2.html
+*/
 func ServeDir(dir string) types.Handler {
 	fi, err := os.Stat(dir)
 	if err != nil {
@@ -48,9 +65,6 @@ type ProtectedFS struct {
 }
 
 func (pfs ProtectedFS) Open(name string) (fs.File, error) {
-	if strings.Contains(name, "/..") {
-		return nil, fs.ErrNotExist
-	}
 	f, err := pfs.fs.Open(name)
 	if err != nil {
 		return nil, err

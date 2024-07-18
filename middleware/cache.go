@@ -215,4 +215,13 @@ Via: 1.1 google
 x-cache: hit
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
+
+
+GOLANG FILE SERVER RERSPONSE:
+HTTP/1.1 200 OK
+Content-Length: 195447
+Accept-Ranges: bytes
+Content-Type: text/html; charset=utf-8
+Date: Thu, 18 Jul 2024 12:19:42 GMT
+Last-Modified: Thu, 18 Jul 2024 12:15:27 GMT
 */
