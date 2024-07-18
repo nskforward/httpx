@@ -13,13 +13,16 @@ import (
 var ContextAuthString types.ContextParam = "middleware.auth.string"
 
 func JWTAuth(secret string) types.Middleware {
+
+	encoder := jwt.NewEncoder(secret)
+
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			token := r.Header.Get(types.Authorization)
 			if token == "" {
 				return response.Error{Status: http.StatusUnauthorized, Text: "require Authorization header"}
 			}
-			data, err := jwt.Decode(token, []byte(secret))
+			data, err := encoder.Decode([]byte(token))
 			if err != nil {
 				return response.Error{Status: http.StatusUnauthorized, Text: "bad Authorization header"}
 			}
