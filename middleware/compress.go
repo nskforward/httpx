@@ -2,13 +2,21 @@ package middleware
 
 import (
 	"compress/gzip"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/types"
 )
+
+var gzPool = sync.Pool{
+	New: func() any {
+		return gzip.NewWriter(io.Discard)
+	},
+}
 
 func Compress(next types.Handler) types.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
@@ -17,12 +25,7 @@ func Compress(next types.Handler) types.Handler {
 		}
 
 		ww := response.NewWrapper(w)
-		var gzw *gzip.Writer
-		defer func() {
-			if gzw != nil {
-				gzw.Close()
-			}
-		}()
+		var gz *gzip.Writer
 
 		ww.BeforeBody = func() {
 			if !isAllowedContent(ww.Header().Get(types.ContentType)) {
@@ -31,18 +34,24 @@ func Compress(next types.Handler) types.Handler {
 			if !isAllowedLength(ww.Header().Get(types.ContentLength)) {
 				return
 			}
-			gz, err := gzip.NewWriterLevel(ww.ResponseWriter, 6)
-			if err != nil {
-				return
-			}
-			gzw = gz
+
+			gz = gzPool.Get().(*gzip.Writer)
+			gz.Reset(w)
+
+			ww.SetWriter(gz)
 			ww.Header().Del(types.ContentLength)
 			ww.Header().Del(types.AcceptRanges)
-			ww.Header().Set(types.ContentEncoding, "gzip")
-			ww.BodyWriter(gz)
+			w.Header().Set(types.ContentEncoding, "gzip")
 		}
 
-		return next(ww, r)
+		err := next(ww, r)
+
+		if gz != nil {
+			gz.Close()
+			gzPool.Put(gz)
+		}
+
+		return err
 	}
 }
 
@@ -54,7 +63,7 @@ func isAllowedLength(contentLength string) bool {
 	if err != nil {
 		return false
 	}
-	return size > 2048
+	return size > 2000
 }
 
 func isAllowedContent(contentType string) bool {

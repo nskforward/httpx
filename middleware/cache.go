@@ -137,7 +137,7 @@ func fillCache(w http.ResponseWriter, r *http.Request, dir string, maxFileSize i
 			c.Filename.Plain = keyFile
 		}
 
-		ww.BodyWriter(io.MultiWriter(f, ww.ResponseWriter))
+		ww.SetWriter(io.MultiWriter(f, ww.ResponseWriter))
 	}
 
 	return ww

@@ -21,5 +21,5 @@ func TestParams(t *testing.T) {
 	s := httptest.NewServer(&r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/api/v1/user/123/filter/admin", "")
+	DoRequest(s, "GET", "/api/v1/user/123/filter/admin", "", nil)
 }

@@ -11,11 +11,11 @@ type Wrapper struct {
 	size        int64
 	BeforeBody  func()
 	body        io.Writer
-	headersSent bool
+	wroteHeader bool
 }
 
 func NewWrapper(w http.ResponseWriter) *Wrapper {
-	return &Wrapper{ResponseWriter: w, status: 200, size: 0, body: w, headersSent: false}
+	return &Wrapper{ResponseWriter: w, status: 200, body: w}
 }
 
 func (ww *Wrapper) Size() int64 {
@@ -26,21 +26,27 @@ func (ww *Wrapper) Status() int {
 	return ww.status
 }
 
-func (ww *Wrapper) BodyWriter(w io.Writer) {
+func (ww *Wrapper) SetWriter(w io.Writer) {
 	ww.body = w
 }
 
 func (ww *Wrapper) WriteHeader(statusCode int) {
+	if ww.wroteHeader {
+		return
+	}
 	ww.status = statusCode
 	if ww.BeforeBody != nil {
 		ww.BeforeBody()
 	}
+	if ww.body == nil {
+		panic("response.Writer body is nil")
+	}
 	ww.ResponseWriter.WriteHeader(statusCode)
-	ww.headersSent = true
+	ww.wroteHeader = true
 }
 
 func (ww *Wrapper) Write(p []byte) (written int, err error) {
-	if !ww.headersSent {
+	if !ww.wroteHeader {
 		ww.WriteHeader(200)
 	}
 	written, err = ww.body.Write(p)

@@ -10,7 +10,11 @@ import (
 	"time"
 )
 
-func DoRequest(s *httptest.Server, method, uri, body string) {
+func HTTPClient() *http.Client {
+	return &http.Client{Transport: &http.Transport{DisableCompression: true}}
+}
+
+func DoRequest(s *httptest.Server, method, uri, body string, header http.Header) {
 	fmt.Println("================================================")
 	fmt.Println(method, uri)
 	var reader io.Reader
@@ -21,6 +25,11 @@ func DoRequest(s *httptest.Server, method, uri, body string) {
 	req, err := http.NewRequest(method, s.URL+uri, reader)
 	if err != nil {
 		panic(err)
+	}
+	for k, vv := range header {
+		for _, v := range vv {
+			req.Header.Set(k, v)
+		}
 	}
 	t1 := time.Now()
 	resp, err := http.DefaultClient.Do(req)
