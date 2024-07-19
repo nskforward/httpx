@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/types"
 )
 
@@ -16,7 +15,7 @@ func RequestID(next types.Handler) types.Handler {
 			r.Header.Set(types.XRequestId, id)
 		}
 
-		ww := response.NewWrapper(w)
+		ww := types.NewResponseWrapper(w)
 		ww.BeforeBody = func() {
 			if ww.Header().Get(types.XRequestId) == "" {
 				ww.Header().Set(types.XRequestId, id)

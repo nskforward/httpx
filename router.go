@@ -2,7 +2,6 @@ package httpx
 
 import (
 	"crypto/tls"
-	"log/slog"
 	"net/http"
 
 	"github.com/nskforward/httpx/response"
@@ -13,6 +12,17 @@ import (
 type Router struct {
 	mux         *http.ServeMux
 	middlewares []types.Middleware
+	loggerFunc  types.LoggerFunc
+}
+
+func (router *Router) init() {
+	router.mux = http.NewServeMux()
+	router.middlewares = make([]types.Middleware, 0, 8)
+	router.loggerFunc = defaultLoggerFunc
+}
+
+func (router *Router) LoggerFunc(f types.LoggerFunc) {
+	router.loggerFunc = f
 }
 
 /*
@@ -26,20 +36,14 @@ Patterns can match the method, host and path of a request. Some examples:
 */
 func (router *Router) Route(pattern string, h types.Handler, middlewares ...types.Middleware) {
 	if router.mux == nil {
-		router.mux = http.NewServeMux()
+		router.init()
 	}
-	if router.middlewares == nil {
-		router.middlewares = make([]types.Middleware, 0, 8)
-	}
-	router.mux.HandleFunc(pattern, finalHandler(h, router.middlewares, middlewares))
+	router.mux.HandleFunc(pattern, router.handler(h, router.middlewares, middlewares))
 }
 
 func (router *Router) Group(middleware ...types.Middleware) *Router {
 	if router.mux == nil {
-		router.mux = http.NewServeMux()
-	}
-	if router.middlewares == nil {
-		router.middlewares = make([]types.Middleware, 0, 8)
+		router.init()
 	}
 	return &Router{
 		mux:         router.mux,
@@ -48,8 +52,8 @@ func (router *Router) Group(middleware ...types.Middleware) *Router {
 }
 
 func (router *Router) Use(middlewares ...types.Middleware) {
-	if router.middlewares == nil {
-		router.middlewares = make([]types.Middleware, 0, 8)
+	if router.mux == nil {
+		router.init()
 	}
 	router.middlewares = append(router.middlewares, middlewares...)
 }
@@ -66,7 +70,7 @@ func (router *Router) ListenTLS(addr string, tlsConfig *tls.Config) error {
 	return transport.DefaultTransport().ListenTLS(addr, tlsConfig, router)
 }
 
-func finalHandler(h types.Handler, mw1, mw2 []types.Middleware) http.HandlerFunc {
+func (router *Router) handler(h types.Handler, mw1, mw2 []types.Middleware) http.HandlerFunc {
 	if mw1 == nil && mw2 == nil {
 		return nil
 	}
@@ -76,24 +80,40 @@ func finalHandler(h types.Handler, mw1, mw2 []types.Middleware) http.HandlerFunc
 	for i := len(mw0) - 1; i >= 0; i-- {
 		h = mw0[i](h)
 	}
-	return catch(h)
+	return router.catch(h)
 }
 
-func catch(next types.Handler) http.HandlerFunc {
+func (router *Router) catch(next types.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := next(w, r)
-		if err == nil {
-			return
+		ww := types.NewResponseWrapper(w)
+
+		err := next(ww, r)
+
+		if err != nil {
+			router.handleError(ww, err)
 		}
-		resp, ok := err.(response.Error)
-		if ok {
-			slog.Error("unhandled error", "status", resp.Status, "error", resp.Text)
-			http.Error(w, resp.Text, resp.Status)
-			return
+
+		if router.loggerFunc != nil {
+			router.loggerFunc(ww, r, err)
 		}
-		slog.Error("unhandled error", "status", resp.Status, "error", err.Error())
-		http.Error(w, http.StatusText(500), 500)
 	}
+}
+
+func (router *Router) handleError(w http.ResponseWriter, err error) {
+	status := 400
+	text := err.Error()
+
+	apiError, ok := err.(response.Error)
+	if ok {
+		status = apiError.Status
+		if apiError.Text == "" || apiError.Status == 500 {
+			text = http.StatusText(apiError.Status)
+		} else {
+			text = apiError.Text
+		}
+	}
+
+	http.Error(w, text, status)
 }
 
 /*

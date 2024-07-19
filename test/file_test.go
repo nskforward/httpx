@@ -12,7 +12,7 @@ import (
 
 func TestFile(t *testing.T) {
 	var r httpx.Router
-	r.Use(middleware.Log, middleware.Recovery, middleware.RequestID)
+	r.Use(middleware.RequestID)
 	r.Route("/api/v1/", httpx.ServeFile("data/static/123.html"))
 
 	s := httptest.NewServer(&r)

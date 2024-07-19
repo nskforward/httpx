@@ -12,10 +12,10 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-func TestRecovery(t *testing.T) {
+func TestRecover(t *testing.T) {
 	h := func(w http.ResponseWriter, r *http.Request) error {
 		fmt.Println("--- main handler")
-		panic("test panic")
+		panic("my test panic")
 		// return response.Error{Status: 500, Text: "main handler error triggered"}
 		//return response.JSON(w, 200, response.H{"status": 100})
 	}
@@ -39,7 +39,7 @@ func TestRecovery(t *testing.T) {
 
 	var r httpx.Router
 
-	r.Use(middleware.Log, middleware.Recovery, middleware.RequestID)
+	r.Use(middleware.Recover, middleware.RequestID)
 	r.Use(mw(1, false, false))
 
 	r.Route("/api/v1/", h, mw(2, false, false))

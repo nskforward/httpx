@@ -13,18 +13,20 @@ import (
 )
 
 func TestProxySingle(t *testing.T) {
+	var r1 httpx.Router
+	r1.Route("/api/v1/", httpx.Echo, middleware.RealIP)
 
-	backend1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "backend-1")
-	}))
+	backend1 := httptest.NewServer(&r1)
 	defer backend1.Close()
 
-	var r httpx.Router
-	r.Use(middleware.Log, middleware.Recovery)
-	r.Route("/api/v1/", proxy.Reverse(backend1.URL))
+	var r2 httpx.Router
+	r2.Route("/api/v1/", proxy.Reverse(backend1.URL))
 
-	frontendProxy := httptest.NewServer(&r)
+	frontendProxy := httptest.NewServer(&r2)
 	defer frontendProxy.Close()
 
-	DoRequest(frontendProxy, "GET", "/api/v1/user/123", "", http.Header{types.AcceptEncoding: []string{"gzip"}})
+	fmt.Println("proxy:", frontendProxy.URL)
+	fmt.Println("backend:", backend1.URL)
+
+	DoRequest(frontendProxy, "POST", "/api/v1/user/123", "aaa=111", http.Header{types.AcceptEncoding: []string{"gzip"}})
 }

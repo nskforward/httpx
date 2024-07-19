@@ -18,7 +18,6 @@ const (
 	SetCookie               = "Set-Cookie"
 	AcceptEncoding          = "Accept-Encoding"
 	AcceptRanges            = "Accept-Ranges"
-	TrueClientIP            = "True-Client-IP"
 	XRealIP                 = "X-Real-IP"
 	XForwardedFor           = "X-Forwarded-For"
 	XCache                  = "X-Cache"

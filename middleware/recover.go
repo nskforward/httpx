@@ -8,7 +8,7 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-func Recovery(next types.Handler) types.Handler {
+func Recover(next types.Handler) types.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		defer func() {
 			if r := recover(); r != nil {
@@ -16,7 +16,7 @@ func Recovery(next types.Handler) types.Handler {
 					panic(r)
 				}
 				http.Error(w, "Internal Server Error", 500)
-				fmt.Println("[ PANIC ]", r, "\n", string(debug.Stack()))
+				fmt.Println("FATAL", r, "\n", string(debug.Stack()))
 			}
 		}()
 		return next(w, r)

@@ -18,7 +18,6 @@ func TestSetHeader(t *testing.T) {
 	}
 
 	var r httpx.Router
-	r.Use(middleware.Log, middleware.Recovery)
 	r.Use(
 		middleware.SetHeader("Server", "unit-test1", false),
 		middleware.SetHeader("Server", "unit-test2", true),

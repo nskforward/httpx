@@ -18,8 +18,10 @@ func Reverse(prefixURL string) types.Handler {
 
 	rp := &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetXForwarded()
 			r.SetURL(rpURL)
+			r.Out.Header.Del(types.XForwardedFor)
+			r.Out.Header.Del(types.XRealIP)
+			r.Out.Header.Set(types.XRealIP, r.In.RemoteAddr)
 		},
 		Transport: &http.Transport{
 			DialContext: (&net.Dialer{

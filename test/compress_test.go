@@ -24,7 +24,7 @@ func TestCompress(t *testing.T) {
 	}
 
 	var r httpx.Router
-	r.Use(middleware.Log, middleware.Recovery, middleware.Compress)
+	r.Use(middleware.Compress)
 	r.Route("/api/v1/", h)
 
 	s := httptest.NewServer(&r)

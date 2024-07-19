@@ -3,7 +3,6 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/types"
 )
 
@@ -14,7 +13,7 @@ func SetHeader(name, value string, once bool) types.Middleware {
 				w.Header().Set(name, value)
 				return next(w, r)
 			}
-			ww := response.NewWrapper(w)
+			ww := types.NewResponseWrapper(w)
 			ww.BeforeBody = func() {
 				if ww.Header().Get(name) == "" {
 					ww.Header().Set(name, value)

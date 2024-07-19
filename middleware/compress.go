@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/types"
 )
 
@@ -24,7 +23,7 @@ func Compress(next types.Handler) types.Handler {
 			return next(w, r)
 		}
 
-		ww := response.NewWrapper(w)
+		ww := types.NewResponseWrapper(w)
 		var gz *gzip.Writer
 
 		ww.BeforeBody = func() {

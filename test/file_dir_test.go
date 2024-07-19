@@ -10,7 +10,7 @@ import (
 
 func TestFileDir(t *testing.T) {
 	var r httpx.Router
-	r.Use(middleware.Log, middleware.Recovery, middleware.RequestID)
+	r.Use(middleware.RequestID)
 	r.Route("/", httpx.ServeDir("data"))
 
 	s := httptest.NewServer(&r)

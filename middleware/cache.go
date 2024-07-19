@@ -13,7 +13,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nskforward/httpx/cache"
-	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/types"
 )
 
@@ -71,8 +70,8 @@ func cacheSent(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-func fillCache(w http.ResponseWriter, r *http.Request, dir string, maxFileSize int64, c *cache.Cache, f *os.File) *response.Wrapper {
-	ww := response.NewWrapper(w)
+func fillCache(w http.ResponseWriter, r *http.Request, dir string, maxFileSize int64, c *cache.Cache, f *os.File) *types.ResponseWrapper {
+	ww := types.NewResponseWrapper(w)
 	ww.BeforeBody = func() {
 		if ww.Status() != 200 {
 			return
