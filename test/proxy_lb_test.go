@@ -35,5 +35,5 @@ func TestProxyLB(t *testing.T) {
 	frontendProxy := httptest.NewServer(&r)
 	defer frontendProxy.Close()
 
-	DoRequest(frontendProxy, "GET", "/api/v1/user/123", "", http.Header{types.AcceptEncoding: []string{"gzip"}})
+	DoRequest(frontendProxy, "GET", "/api/v1/user/123", "", http.Header{types.AcceptEncoding: []string{"gzip"}}, true, false)
 }

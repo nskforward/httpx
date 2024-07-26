@@ -16,5 +16,5 @@ func TestFileDir(t *testing.T) {
 	s := httptest.NewServer(&r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/static", "", nil)
+	DoRequest(s, "GET", "/static", "", nil, true, false)
 }

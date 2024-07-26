@@ -26,7 +26,7 @@ func TestRecover(t *testing.T) {
 					fmt.Println("--- middleware:", msg)
 				}
 				if hasError {
-					return response.Error{Status: http.StatusUnauthorized, Text: "test error"}
+					return response.APIError{Status: http.StatusUnauthorized, Text: "test error"}
 				}
 				err := next(w, r)
 				if after {
@@ -47,5 +47,5 @@ func TestRecover(t *testing.T) {
 	s := httptest.NewServer(&r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/api/v1/user/123", "", nil)
+	DoRequest(s, "GET", "/api/v1/user/123", "", nil, true, false)
 }

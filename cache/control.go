@@ -22,7 +22,7 @@ type Control struct {
 	StaleIfError         time.Duration
 }
 
-func NewControl(cacheControlHeader string) Control {
+func NewCacheControl(cacheControlHeader string) Control {
 	var controlHeader Control
 	items := strings.Split(cacheControlHeader, ",")
 	for _, item := range items {

@@ -30,6 +30,7 @@ func NewListener(ctx context.Context, l net.Listener, maxConnections, maxRateCon
 		maxRateConnBurst: maxRateConn * 2,
 		ctx:              ctx1,
 		cancel:           cancel,
+		counters:         make(map[string]*Counter),
 	}
 }
 

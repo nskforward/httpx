@@ -11,7 +11,7 @@ type Queue struct {
 }
 
 type Node struct {
-	c           *Cache
+	Val         any
 	left, right *Node
 }
 

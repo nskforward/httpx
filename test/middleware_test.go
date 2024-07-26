@@ -41,5 +41,5 @@ func TestMiddleware(t *testing.T) {
 	s := httptest.NewServer(&r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/api/v1/user/123", "", nil)
+	DoRequest(s, "GET", "/api/v1/user/123", "", nil, true, false)
 }

@@ -7,26 +7,32 @@ import (
 	"testing"
 
 	"github.com/nskforward/httpx"
-	"github.com/nskforward/httpx/middleware"
+	m "github.com/nskforward/httpx/middleware"
 	"github.com/nskforward/httpx/proxy"
+	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/types"
 )
 
 func TestProxySingle(t *testing.T) {
-	var r1 httpx.Router
-	r1.Route("/api/v1/", httpx.Echo, middleware.RealIP)
 
-	backend1 := httptest.NewServer(&r1)
-	defer backend1.Close()
+	// BACKEND
+	br := httpx.NewRouter()
+	br.Use(m.RealIP, m.SetHeader("Server", "backend", false))
+	br.Route("/", httpx.Echo)
+	br.Route("/cookies", func(w http.ResponseWriter, r *http.Request) error {
+		fmt.Println("cookies:", r.Header.Get("Cookie"))
+		return response.Text(w, 200, "dump cookies")
+	})
+	backend := httptest.NewServer(br)
+	defer backend.Close()
 
-	var r2 httpx.Router
-	r2.Route("/api/v1/", proxy.Reverse(backend1.URL))
+	// PROXY
+	pr := httpx.NewRouter()
+	pr.Use(m.Recover, m.RequestID)
+	pr.Route("/", proxy.Reverse(backend.URL), m.SetHeader("Server", "proxy", true))
+	pr.Route("/test", httpx.Text("hello from proxy!"), m.SetHeader("Server", "proxy", true))
+	frontend := httptest.NewServer(pr)
+	defer frontend.Close()
 
-	frontendProxy := httptest.NewServer(&r2)
-	defer frontendProxy.Close()
-
-	fmt.Println("proxy:", frontendProxy.URL)
-	fmt.Println("backend:", backend1.URL)
-
-	DoRequest(frontendProxy, "POST", "/api/v1/user/123", "aaa=111", http.Header{types.AcceptEncoding: []string{"gzip"}})
+	DoRequest(frontend, "POST", "/cookies", "aaa=111", http.Header{types.AcceptEncoding: []string{"gzip"}}, true, true)
 }

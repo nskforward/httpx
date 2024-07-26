@@ -74,14 +74,14 @@ func TestMain(t *testing.T) {
 		},
 	}
 
-	var r httpx.Router
+	r := httpx.NewRouter()
 	for i, tc := range testCases {
 		r.Route(tc.pattern, func(w http.ResponseWriter, r *http.Request) error {
 			return response.Text(w, tc.status, fmt.Sprintf("%d:%s", i+1, r.URL.RequestURI()))
 		})
 	}
 
-	s := httptest.NewServer(&r)
+	s := httptest.NewServer(r)
 	defer s.Close()
 
 	for _, tc := range testCases {

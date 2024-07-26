@@ -20,11 +20,11 @@ func JWTAuth(secret string) types.Middleware {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			token := r.Header.Get(types.Authorization)
 			if token == "" {
-				return response.Error{Status: http.StatusUnauthorized, Text: "require Authorization header"}
+				return response.APIError{Status: http.StatusUnauthorized, Text: "require Authorization header"}
 			}
 			data, err := encoder.Decode([]byte(token))
 			if err != nil {
-				return response.Error{Status: http.StatusUnauthorized, Text: "bad Authorization header"}
+				return response.APIError{Status: http.StatusUnauthorized, Text: "bad Authorization header"}
 			}
 			r = types.SetParam(r, ContextAuthString, string(data))
 			return next(w, r)
@@ -35,7 +35,7 @@ func JWTAuth(secret string) types.Middleware {
 func BasicAuth(realm string, creds map[string]string) types.Middleware {
 	basicAuthFailed := func(w http.ResponseWriter, realm string) error {
 		w.Header().Add("WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, realm))
-		return response.Error{Status: http.StatusUnauthorized}
+		return response.NewAPIError(http.StatusUnauthorized)
 	}
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
@@ -53,7 +53,7 @@ func BasicAuth(realm string, creds map[string]string) types.Middleware {
 	}
 }
 
-func AuthString(r *http.Request) string {
+func GetAuthString(r *http.Request) string {
 	val := types.GetParam(r, ContextAuthString)
 	if val == nil {
 		return ""

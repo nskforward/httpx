@@ -26,9 +26,9 @@ func proxiedIP(header http.Header) string {
 		if ip == "" {
 			return ""
 		}
-		i := strings.Index(ip, ",")
+		i := strings.LastIndex(ip, ",")
 		if i > -1 {
-			ip = ip[:i]
+			ip = strings.TrimSpace(ip[i+1:])
 		}
 	}
 

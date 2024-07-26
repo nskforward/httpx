@@ -46,7 +46,7 @@ func TestGroup(t *testing.T) {
 	s := httptest.NewServer(&r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/api/v1/user/111", "", nil)
-	DoRequest(s, "GET", "/api/v2/user/222", "", nil)
-	DoRequest(s, "GET", "/api/v3/useår/333", "", nil)
+	DoRequest(s, "GET", "/api/v1/user/111", "", nil, true, false)
+	DoRequest(s, "GET", "/api/v2/user/222", "", nil, true, false)
+	DoRequest(s, "GET", "/api/v3/useår/333", "", nil, true, false)
 }

@@ -23,7 +23,7 @@ func TestError(t *testing.T) {
 					fmt.Println("--- middleware:", msg)
 				}
 				if hasError {
-					return response.Error{Status: http.StatusUnauthorized}
+					return response.NewAPIError(http.StatusUnauthorized)
 				}
 				err := next(w, r)
 				if after {
@@ -44,5 +44,5 @@ func TestError(t *testing.T) {
 	s := httptest.NewServer(&r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/api/v1/user/123", "", nil)
+	DoRequest(s, "GET", "/api/v1/user/123", "", nil, true, false)
 }

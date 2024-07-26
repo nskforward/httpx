@@ -1,30 +1,26 @@
 package middleware
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nskforward/httpx/cache"
 	"github.com/nskforward/httpx/types"
 )
 
-func Cache(dir string, maxFileSize int64) types.Middleware {
+func Cache(settings cache.Settings) types.Middleware {
 
-	fi, err := os.Stat(dir)
+	settings, err := cache.ValidateSettings(settings)
 	if err != nil {
-		panic(fmt.Errorf("cache dir must be a valid path: %w", err))
+		panic(err)
 	}
-	if !fi.IsDir() {
-		panic(fmt.Errorf("cache dir must be a directory"))
-	}
+
+	store := cache.NewStore(settings.Dir)
 
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
@@ -32,195 +28,129 @@ func Cache(dir string, maxFileSize int64) types.Middleware {
 				return next(w, r)
 			}
 
-			if cacheSent(w, r) {
+			if handleCachedResponse(store, w, r) {
+				// hit cache
 				return nil
 			}
 
-			var c *cache.Cache
+			// miss cache
 			var f *os.File
-
-			defer func() {
-				if f != nil {
-					f.Close()
+			var entry *cache.Entry
+			ww := types.NewResponseWrapper(w)
+			ww.BeforeBody = func() {
+				if ww.Status() != 200 {
+					return
 				}
-				if c != nil {
-					cache.Set(r.URL.RequestURI(), c)
-				}
-			}()
 
-			ww := fillCache(w, r, dir, maxFileSize, c, f)
-			return next(ww, r)
+				ttl := getTTL(r, ww.Header())
+				if ttl < 0 {
+					return
+				}
+
+				ww.Header().Set(types.XCache, "miss")
+
+				bucket := store.GetOrCreateBucket(r.URL.RequestURI())
+				entry = bucket.GetKey(r)
+				if entry == nil {
+					entry = bucket.SetKey(r, ttl, func(r *http.Request) string {
+						return r.URL.RequestURI()
+					})
+				}
+				f, err = os.Create(entry.File())
+				if err != nil {
+					slog.Error("cannot create a cache file", "error", err)
+					return
+				}
+				if !entry.SetFilling() {
+					return
+				}
+				writeDownHeaders(f, ww.Status(), ww.Header())
+				ww.SetWriter(io.MultiWriter(ww.ResponseWriter, f))
+			}
+			err := next(ww, r)
+			if entry != nil {
+				entry.SetIdle()
+			}
+			if f != nil {
+				f.Close()
+			}
+			return err
 		}
 	}
 }
 
-func cacheSent(w http.ResponseWriter, r *http.Request) bool {
-	c := cache.Get(r.URL.RequestURI())
-	if c == nil {
+func writeDownHeaders(f *os.File, status int, header http.Header) {
+	io.WriteString(f, strconv.Itoa(status))
+	io.WriteString(f, "\n")
+	for k, vv := range header {
+		if k == "Connection" {
+			continue
+		}
+		if k == "Accept-Ranges" {
+			continue
+		}
+		io.WriteString(f, k)
+		io.WriteString(f, ": ")
+		io.WriteString(f, strings.Join(vv, ", "))
+		io.WriteString(f, "\n")
+	}
+	io.WriteString(f, "\n")
+}
+
+func getTTL(r *http.Request, respheader http.Header) time.Duration {
+	cacheControl := cache.NewCacheControl(respheader.Get(types.CacheControl))
+
+	if cacheControl.NoStore && cacheControl.Private {
+		return -1
+	}
+	if r.Header.Get(types.Authorization) != "" && !cacheControl.Public {
+		return -1
+	}
+	if cacheControl.SMaxAge > 0 {
+		return cacheControl.SMaxAge * time.Second
+	}
+	if cacheControl.MaxAge > 0 {
+		return cacheControl.MaxAge * time.Second
+	}
+	if cacheControl.NoCache {
+		return 0
+	}
+	expires, err := time.Parse(http.TimeFormat, respheader.Get(types.Expires))
+	if err == nil && !expires.IsZero() {
+		return time.Until(expires)
+	}
+	lastModified, err := time.Parse(http.TimeFormat, respheader.Get(types.LastModified))
+	if err == nil && !lastModified.IsZero() && time.Since(lastModified) > 10*time.Second {
+		return time.Since(lastModified) / 10
+	}
+	return -1
+}
+
+func handleCachedResponse(store *cache.Store, w http.ResponseWriter, r *http.Request) bool {
+	bucket := store.GetBucket(r.URL.RequestURI())
+	if bucket == nil {
 		return false
 	}
-	if time.Since(c.To) > 0 {
+	entry := bucket.GetKey(r)
+	if entry == nil {
 		return false
 	}
-	err := c.SendFile(w, r)
-	if err != nil {
-		slog.Error("cannot send cache file", "error", err)
+	if !entry.IsIdle() {
 		return false
 	}
+
+	etag := r.Header.Get(types.IfNoneMatch)
+	if etag != "" && etag == entry.ID() {
+		w.Header().Set(types.ETag, etag)
+		w.WriteHeader(http.StatusNotModified)
+		return true
+	}
+
+	if !entry.Valid() {
+		return false
+	}
+
+	entry.SendCache(w)
+
 	return true
 }
-
-func fillCache(w http.ResponseWriter, r *http.Request, dir string, maxFileSize int64, c *cache.Cache, f *os.File) *types.ResponseWrapper {
-	ww := types.NewResponseWrapper(w)
-	ww.BeforeBody = func() {
-		if ww.Status() != 200 {
-			return
-		}
-
-		cacheControlString := w.Header().Get(types.CacheControl)
-		lastModifiedString := w.Header().Get(types.LastModified)
-		etag := w.Header().Get(types.ETag)
-
-		if cacheControlString == "" && lastModifiedString == "" && etag == "" {
-			return
-		}
-
-		contentLengthString := w.Header().Get(types.ContentLength)
-		if contentLengthString == "" {
-			return
-		}
-
-		contentLength, err := strconv.ParseInt(contentLengthString, 10, 64)
-		if err != nil {
-			return
-		}
-
-		if contentLength > maxFileSize {
-			return
-		}
-
-		control := cache.NewControl(cacheControlString)
-
-		if control.NoStore || control.Private {
-			return
-		}
-
-		if (w.Header().Get(types.SetCookie) != "" || r.Header.Get(types.Authorization) != "") && !control.Public {
-			return
-		}
-
-		keyFolder := filepath.Join(dir, cache.Hash(r.URL.RequestURI()))
-		os.Mkdir(keyFolder, os.ModePerm)
-		keyFile := uuid.New().String()
-
-		filename := filepath.Join(keyFolder, keyFile)
-		f, err = os.Create(filename)
-		if err != nil {
-			slog.Error("cannot create cache file", "error", err, "file", filename)
-			return
-		}
-
-		c = &cache.Cache{
-			Key:         keyFolder,
-			From:        cache.DetectDateMofified(w.Header()),
-			To:          cache.DetectDateExpiration(w.Header(), control),
-			Stale:       maxDuration(control.StaleWhileRevalidate, control.StaleIfError),
-			ContentType: w.Header().Get(types.ContentType),
-			ETag:        w.Header().Get(types.ETag),
-		}
-
-		encoding := detectEncoding(w.Header())
-		if encoding == "gzip" {
-			c.Filename.Gzip = keyFile
-		} else {
-			c.Filename.Plain = keyFile
-		}
-
-		ww.SetWriter(io.MultiWriter(f, ww.ResponseWriter))
-	}
-
-	return ww
-}
-
-func detectEncoding(header http.Header) string {
-	if strings.Contains(header.Get(types.ContentEncoding), "gzip") {
-		return "gzip"
-	}
-	return "plain"
-}
-
-func maxDuration(a, b time.Duration) time.Duration {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-/*
-Usecases
-
-// preventing caching anywhere
-Cache-Control: no-store
-
-// cache static content
-Cache-Control: max-age=31536000, immutable
-
-// allow cache, but up-to-date contents always
-1. Cache-Control: no-cache
-2. Cache-Control: max-age=0, must-revalidate
-3. Last-Modified: Mon, 15 Jul 2024 13:37:33 GMT
-
-w.Header().Set("Last-Modified", modtime.UTC().Format(TimeFormat))
-
-func writeNotModified(w ResponseWriter) {
-	// RFC 7232 section 4.1:
-	// a sender SHOULD NOT generate representation metadata other than the
-	// above listed fields unless said metadata exists for the purpose of
-	// guiding cache updates (e.g., Last-Modified might be useful if the
-	// response does not have an ETag field).
-	h := w.Header()
-	delete(h, "Content-Type")
-	delete(h, "Content-Length")
-	delete(h, "Content-Encoding")
-	if h.Get("Etag") != "" {
-		delete(h, "Last-Modified")
-	}
-	w.WriteHeader(StatusNotModified)
-}
-
-etag := header.Get("ETag")                             //  If-None-Match
-lastModified := parseTime(header.Get("Last-Modified")) //  If-Modified-Since
-// rw.ResponseWriter.Header().Get("Expires")
-// rw.ResponseWriter.Header().Get("Age")
-// rw.ResponseWriter.Header().Get("Date")
-vary := header.Get("Vary")
-
-
-HTTP/1.1 200 OK
-Accept-Ranges: none
-Age: 2919
-Cache-Control: public, max-age=3600
-Content-Encoding: br
-Content-Length: 724
-Content-Type: text/javascript
-Date: Tue, 16 Jul 2024 07:09:54 GMT
-ETag: W/"496e1e4ae72df3a4b647cb6bd577cf62"
-Expires: Tue, 16 Jul 2024 07:14:09 GMT
-Last-Modified: Mon, 15 Jul 2024 00:41:35 GMT
-Server: Google Frontend
-Strict-Transport-Security: max-age=63072000
-Vary: Accept-Encoding
-Via: 1.1 google
-x-cache: hit
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-
-
-GOLANG FILE SERVER RERSPONSE:
-HTTP/1.1 200 OK
-Content-Length: 195447
-Accept-Ranges: bytes
-Content-Type: text/html; charset=utf-8
-Date: Thu, 18 Jul 2024 12:19:42 GMT
-Last-Modified: Thu, 18 Jul 2024 12:15:27 GMT
-*/

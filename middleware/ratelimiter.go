@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/types"
 	"golang.org/x/time/rate"
 )
@@ -32,7 +31,8 @@ func RateLimiter(period time.Duration, burst int, timeout time.Duration, keyFunc
 
 			err := rl.(*rate.Limiter).Wait(ctx)
 			if err != nil {
-				return response.Error{Status: http.StatusTooManyRequests}
+				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+				return nil
 			}
 			return next(w, r)
 		}

@@ -18,5 +18,5 @@ func TestFile(t *testing.T) {
 	s := httptest.NewServer(&r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/api/v1/user/123", "", http.Header{types.AcceptEncoding: []string{"gzip"}})
+	DoRequest(s, "GET", "/api/v1/user/123", "", http.Header{types.AcceptEncoding: []string{"gzip"}}, true, false)
 }

@@ -30,7 +30,7 @@ func TestCompress(t *testing.T) {
 	s := httptest.NewServer(&r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/api/v1/user/123", "", http.Header{types.AcceptEncoding: []string{"gzip"}})
+	DoRequest(s, "GET", "/api/v1/user/123", "", http.Header{types.AcceptEncoding: []string{"gzip"}}, true, false)
 }
 
 var testData = []byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur molestie enim a urna mattis, eu congue ipsum fermentum. Aliquam ullamcorper luctus viverra. Nullam id purus magna. Duis sed cursus metus. Sed vitae risus laoreet, volutpat eros ut, posuere dui. Vestibulum tellus mi, vestibulum eget mauris in, volutpat auctor dolor. Maecenas in auctor libero. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur molestie enim a urna mattis, eu congue ipsum fermentum. Aliquam ullamcorper luctus viverra. Nullam id purus magna. Duis sed cursus metus. Sed vitae risus laoreet, volutpat eros ut, posuere dui. Vestibulum tellus mi, vestibulum eget mauris in, volutpat auctor dolor. Maecenas in auctor libero.")
