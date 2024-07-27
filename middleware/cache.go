@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"bufio"
+	"bytes"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,9 +16,12 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-func Cache(settings cache.Settings) types.Middleware {
+func Cache(dir string, maxSize cache.Size) types.Middleware {
 
-	settings, err := cache.ValidateSettings(settings)
+	settings, err := cache.ValidateSettings(cache.Settings{
+		Dir:          dir,
+		TotalMaxSize: maxSize,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -24,6 +30,9 @@ func Cache(settings cache.Settings) types.Middleware {
 
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
+			// in any handlers we can get this store and set the cache
+			r = store.Inject(r)
+
 			if r.Method != http.MethodGet {
 				return next(w, r)
 			}
@@ -142,6 +151,7 @@ func handleCachedResponse(store *cache.Store, w http.ResponseWriter, r *http.Req
 	etag := r.Header.Get(types.IfNoneMatch)
 	if etag != "" && etag == entry.ID() {
 		w.Header().Set(types.ETag, etag)
+		w.Header().Set(types.LastModified, entry.LastModified())
 		w.WriteHeader(http.StatusNotModified)
 		return true
 	}
@@ -150,7 +160,49 @@ func handleCachedResponse(store *cache.Store, w http.ResponseWriter, r *http.Req
 		return false
 	}
 
-	entry.SendCache(w)
+	err := sendCache(w, entry)
+	if err != nil {
+		slog.Error("sending cache file", "error", err)
+		return false
+	}
 
 	return true
+}
+
+func sendCache(w http.ResponseWriter, entry *cache.Entry) error {
+	f, err := os.Open(entry.File())
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	b := bufio.NewReader(f)
+	line, err := b.ReadBytes('\n')
+	if err != nil {
+		return err
+	}
+	line = bytes.TrimRight(line, "\n")
+	status, err := strconv.Atoi(string(line))
+	if err != nil {
+		return err
+	}
+	if status < 100 || status > 599 {
+		return fmt.Errorf("bad status format: %s", string(line))
+	}
+	for len(line) > 0 {
+		line, err := b.ReadBytes('\n')
+		if err != nil {
+			return err
+		}
+		line = bytes.TrimRight(line, "\n")
+		header := bytes.Split(line, []byte(": "))
+		if len(header) != 2 {
+			return fmt.Errorf("bad header format: %s", string(line))
+		}
+		w.Header().Set(string(line[0]), string(line[1]))
+	}
+	w.Header().Set("X-Cache", "hit")
+	w.Header().Set("Accept-Ranges", "none")
+	w.Header().Set("Age", strconv.FormatFloat(time.Since(entry.From()).Seconds(), 'f', 0, 64))
+	io.Copy(w, b)
+	return nil
 }

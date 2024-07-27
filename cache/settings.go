@@ -17,7 +17,7 @@ type Settings struct {
 		TotalMaxSize limits the max size of cache dir with the files.
 		Default 0 - unlimited size.
 	*/
-	TotalMaxSize uint64
+	TotalMaxSize Size
 }
 
 func ValidateSettings(settings Settings) (Settings, error) {

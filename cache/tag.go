@@ -1,6 +1,7 @@
 package cache
 
 type Tag struct {
+	name    string
 	buckets []*Bucket
 }
 
