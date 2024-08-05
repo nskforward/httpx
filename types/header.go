@@ -2,6 +2,7 @@ package types
 
 const (
 	ContentType             = "Content-Type"
+	Connection              = "Connection"
 	ContentLength           = "Content-Length"
 	ContentEncoding         = "Content-Encoding"
 	CacheControl            = "Cache-Control"
@@ -18,6 +19,7 @@ const (
 	SetCookie               = "Set-Cookie"
 	AcceptEncoding          = "Accept-Encoding"
 	AcceptRanges            = "Accept-Ranges"
+	TransferEncoding        = "Transfer-Encoding"
 	XRealIP                 = "X-Real-IP"
 	XForwardedFor           = "X-Forwarded-For"
 	XCache                  = "X-Cache"

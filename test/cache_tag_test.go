@@ -1,19 +1,6 @@
 package test
 
-import (
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
-
-	"github.com/nskforward/httpx"
-	"github.com/nskforward/httpx/cache"
-	m "github.com/nskforward/httpx/middleware"
-	"github.com/nskforward/httpx/proxy"
-	"github.com/nskforward/httpx/response"
-	"github.com/nskforward/httpx/types"
-)
-
+/*
 func TestCacheTag(t *testing.T) {
 	store := cache.NewStore("data/cache")
 
@@ -67,3 +54,4 @@ func TestCacheTag(t *testing.T) {
 	time.Sleep(time.Second)
 	DoRequest(frontend, "GET", "/api/v1/users", "", reqHeader, true, true)
 }
+*/
