@@ -17,6 +17,10 @@ func Prohibit(w http.ResponseWriter) {
 	w.Header().Set(types.CacheControl, "no-store")
 }
 
+func Conditional(w http.ResponseWriter) {
+	w.Header().Set(types.CacheControl, "no-cache")
+}
+
 func Public(w http.ResponseWriter, maxAge time.Duration) {
 	w.Header().Set(types.CacheControl, fmt.Sprintf("public, max-age=%.0f", maxAge.Seconds()))
 }
@@ -25,10 +29,10 @@ func Private(w http.ResponseWriter, maxAge time.Duration) {
 	w.Header().Set(types.CacheControl, fmt.Sprintf("private, max-age=%.0f", maxAge.Seconds()))
 }
 
-func Conditional(w http.ResponseWriter, r *http.Request, keyFunc KeyFunc) {
+func ETag(w http.ResponseWriter, r *http.Request, keyFunc KeyFunc) {
 	etag := SaveEtag(r, keyFunc)
 	if etag != "" {
-		w.Header().Set(types.CacheControl, "no-cache")
+		Conditional(w)
 		w.Header().Set(types.ETag, etag)
 	}
 }
