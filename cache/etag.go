@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -33,7 +34,7 @@ func SaveEtag(r *http.Request, keyFunc KeyFunc) string {
 	if key == "" {
 		return ""
 	}
-	etag := strconv.FormatInt(time.Now().UnixNano(), 36)
+	etag := fmt.Sprintf("W/\"%s\"", strconv.FormatInt(time.Now().UnixNano(), 36))
 	etags.Store(key, etag)
 	keyFuncs.Store(r.URL.Path, keyFunc)
 	return etag

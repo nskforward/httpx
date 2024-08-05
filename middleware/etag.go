@@ -16,6 +16,7 @@ func ETag(next types.Handler) types.Handler {
 		etag := r.Header.Get(types.IfNoneMatch)
 		if etag != "" && etag == cache.LoadEtag(r) {
 			cache.NotModifiend(w, etag)
+			return nil
 		}
 
 		return next(w, r)
