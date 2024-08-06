@@ -18,19 +18,14 @@ func RealIP(next types.Handler) types.Handler {
 }
 
 func proxiedIP(header http.Header) string {
-	var ip string
-
-	ip = header.Get(types.XRealIP)
-	if ip == "" {
-		ip = header.Get(types.XForwardedFor)
-		if ip == "" {
-			return ""
-		}
+	ip := header.Get(types.XForwardedFor)
+	if ip != "" {
 		i := strings.LastIndex(ip, ",")
 		if i > -1 {
 			ip = strings.TrimSpace(ip[i+1:])
+			return ip
 		}
 	}
 
-	return ip
+	return header.Get(types.XRealIP)
 }
