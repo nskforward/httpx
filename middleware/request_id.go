@@ -12,6 +12,9 @@ func RequestID(next types.Handler) types.Handler {
 		id := r.Header.Get(types.XRequestId)
 		if id == "" {
 			id = r.Header.Get("Cf-Ray")
+			if id != "" {
+				r.Header.Set(types.XRequestId, id)
+			}
 		}
 
 		if id == "" {
