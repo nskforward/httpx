@@ -7,9 +7,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash"
+	"net/http"
 	"slices"
 	"sync"
 	"unsafe"
+
+	"github.com/nskforward/httpx/types"
 )
 
 type Encoder struct {
@@ -37,6 +40,21 @@ func NewEncoder(secret string) *Encoder {
 			},
 		},
 	}
+}
+
+func (enc *Encoder) ParseRequest(r *http.Request) (string, error) {
+	token := r.Header.Get(types.Authorization)
+	if token == "" {
+		return "", fmt.Errorf("require Authorization header")
+	}
+	data, err := enc.Decode([]byte(token))
+	if err != nil {
+		return "", fmt.Errorf("bad Authorization header")
+	}
+	if len(data) == 0 {
+		return "", fmt.Errorf("empty decoded value")
+	}
+	return string(data), nil
 }
 
 func (enc *Encoder) Encode(src []byte) string {

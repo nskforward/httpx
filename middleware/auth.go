@@ -16,7 +16,7 @@ func JWTAuth(secret string) types.Middleware {
 	enc := jwt.NewEncoder(secret)
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
-			token, err := JWTParseRequest(enc, r)
+			token, err := enc.ParseRequest(r)
 			if err != nil {
 				return response.APIError{Status: http.StatusUnauthorized, Text: err.Error()}
 			}
@@ -24,21 +24,6 @@ func JWTAuth(secret string) types.Middleware {
 			return next(w, r)
 		}
 	}
-}
-
-func JWTParseRequest(encoder *jwt.Encoder, r *http.Request) (string, error) {
-	token := r.Header.Get(types.Authorization)
-	if token == "" {
-		return "", fmt.Errorf("require Authorization header")
-	}
-	data, err := encoder.Decode([]byte(token))
-	if err != nil {
-		return "", fmt.Errorf("bad Authorization header")
-	}
-	if len(data) == 0 {
-		return "", fmt.Errorf("empty decoded value")
-	}
-	return string(data), nil
 }
 
 func BasicAuth(realm string, creds map[string]string) types.Middleware {
