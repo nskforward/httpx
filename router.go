@@ -41,7 +41,7 @@ func (router *Router) Route(pattern string, h types.Handler, middlewares ...type
 	if router.mux == nil {
 		panic(fmt.Errorf("uninitialized router"))
 	}
-	router.mux.HandleFunc(pattern, router.handler(h, router.middlewares, middlewares))
+	router.mux.HandleFunc(pattern, router.handler(h, middlewares))
 	return router
 }
 
@@ -66,7 +66,16 @@ func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if router.mux == nil {
 		panic(fmt.Errorf("uninitialized router"))
 	}
-	router.mux.ServeHTTP(w, r)
+	h := func(ww http.ResponseWriter, rr *http.Request) error {
+		router.mux.ServeHTTP(ww, rr)
+		return nil
+	}
+	for i := len(router.middlewares) - 1; i >= 0; i-- {
+		h = router.middlewares[i](h)
+	}
+	ww := types.NewResponseWrapper(w)
+	err := h(ww, r)
+	router.loggerFunc(ww, r, err)
 }
 
 func (router *Router) Listen(addr string) error {
@@ -77,17 +86,11 @@ func (router *Router) ListenTLS(addr string, tlsConfig *tls.Config) error {
 	return transport.DefaultTransport().ListenTLS(addr, tlsConfig, router)
 }
 
-func (router *Router) handler(h types.Handler, mw1, mw2 []types.Middleware) http.HandlerFunc {
-	if mw1 == nil && mw2 == nil {
-		return nil
+func (router *Router) handler(h types.Handler, middleware []types.Middleware) http.HandlerFunc {
+	for i := len(middleware) - 1; i >= 0; i-- {
+		h = middleware[i](h)
 	}
-	mw0 := make([]types.Middleware, 0, len(mw1)+len(mw2))
-	mw0 = append(mw0, mw1...)
-	mw0 = append(mw0, mw2...)
-	for i := len(mw0) - 1; i >= 0; i-- {
-		h = mw0[i](h)
-	}
-	return Catch(h, router.loggerFunc)
+	return Catch(h)
 }
 
 /*

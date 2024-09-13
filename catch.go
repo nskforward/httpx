@@ -7,18 +7,11 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-func Catch(handler types.Handler, logger types.LoggerFunc) http.HandlerFunc {
+func Catch(handler types.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ww := types.NewResponseWrapper(w)
-
-		err := handler(ww, r)
-
+		err := handler(w, r)
 		if err != nil {
-			handleError(ww, err)
-		}
-
-		if logger != nil {
-			logger(ww, r, err)
+			handleError(w, err)
 		}
 	}
 }
