@@ -17,6 +17,11 @@ func NoContent(w http.ResponseWriter) error {
 	return nil
 }
 
+func Redirect(w http.ResponseWriter, r *http.Request, status int, url string) error {
+	http.Redirect(w, r, url, status)
+	return nil
+}
+
 func JSON(w http.ResponseWriter, statusCode int, obj any) error {
 	w.Header().Set(types.ContentType, types.ApplicationJSON)
 	w.WriteHeader(statusCode)
