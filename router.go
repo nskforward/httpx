@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/a-h/templ"
 	"github.com/nskforward/httpx/transport"
 	"github.com/nskforward/httpx/types"
 )
@@ -65,6 +66,10 @@ func (router *Router) RouteHF(pattern string, h http.HandlerFunc, middlewares ..
 		},
 		middlewares...,
 	)
+}
+
+func (router *Router) RouteV(pattern string, comp templ.Component, middlewares ...types.Middleware) *Router {
+	return router.RouteH(pattern, templ.Handler(comp), middlewares...)
 }
 
 func (router *Router) Group(middleware ...types.Middleware) *Router {
