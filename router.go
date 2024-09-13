@@ -45,6 +45,28 @@ func (router *Router) Route(pattern string, h types.Handler, middlewares ...type
 	return router
 }
 
+func (router *Router) RouteH(pattern string, h http.Handler, middlewares ...types.Middleware) *Router {
+	return router.Route(
+		pattern,
+		func(w http.ResponseWriter, r *http.Request) error {
+			h.ServeHTTP(w, r)
+			return nil
+		},
+		middlewares...,
+	)
+}
+
+func (router *Router) RouteHF(pattern string, h http.HandlerFunc, middlewares ...types.Middleware) *Router {
+	return router.Route(
+		pattern,
+		func(w http.ResponseWriter, r *http.Request) error {
+			h.ServeHTTP(w, r)
+			return nil
+		},
+		middlewares...,
+	)
+}
+
 func (router *Router) Group(middleware ...types.Middleware) *Router {
 	if router.mux == nil {
 		panic(fmt.Errorf("uninitialized router"))
