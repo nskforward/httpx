@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/nskforward/httpx/jwt"
+	"github.com/nskforward/httpx/token"
 )
 
 /*
@@ -14,7 +14,7 @@ sha1	75736572313031406578616d706c652e636f6d.75736572313031406578616d706c652e636f
 */
 
 func TestJWT(t *testing.T) {
-	encoder := jwt.NewEncoder("foobarba")
+	encoder := token.NewEncoder("foobarba")
 
 	email1 := []byte("user1@example.com")
 	email2 := []byte("user2@example.com")
@@ -49,7 +49,7 @@ BenchmarkJWT-4	168354	      6029 ns/op	    1725 B/op	      15 allocs/op
 BenchmarkJWT-4	215650	      4756 ns/op	    1225 B/op	      12 allocs/op
 */
 func BenchmarkJWT(b *testing.B) {
-	encoder := jwt.NewEncoder("foobarba")
+	encoder := token.NewEncoder("foobarba")
 	email := []byte("user101foobarbazz202@example.com")
 
 	b.RunParallel(func(pb *testing.PB) {

@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nskforward/httpx/jwt"
 	"github.com/nskforward/httpx/response"
+	"github.com/nskforward/httpx/token"
 	"github.com/nskforward/httpx/types"
 )
 
 var ContextAuthString types.ContextParam = "middleware.auth.string"
 
-func JWTAuth(secret string) types.Middleware {
-	enc := jwt.NewEncoder(secret)
+func TokenAuth(secret string) types.Middleware {
+	enc := token.NewEncoder(secret)
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			token, err := enc.ParseRequest(r)
