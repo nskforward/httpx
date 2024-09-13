@@ -12,6 +12,7 @@ import (
 func defaultLoggerFunc(w *types.ResponseWrapper, r *http.Request, err error) {
 	if err != nil {
 		slog.Error(strconv.Itoa(w.Status()), "error", err, "trace-id", r.Header.Get(types.XRequestId))
+		handleError(w, err)
 	}
 
 	slog.Info("access",
