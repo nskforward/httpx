@@ -15,6 +15,7 @@ type Router struct {
 	mux         *http.ServeMux
 	middlewares []types.Middleware
 	loggerFunc  types.LoggerFunc
+	errorFunc   types.ErrorFunc
 }
 
 func NewRouter() *Router {
@@ -22,12 +23,17 @@ func NewRouter() *Router {
 		mux:         http.NewServeMux(),
 		middlewares: make([]types.Middleware, 0, 8),
 		loggerFunc:  defaultLoggerFunc,
+		errorFunc:   defaultErrorFunc,
 	}
 	return r
 }
 
 func (router *Router) LoggerFunc(f types.LoggerFunc) {
 	router.loggerFunc = f
+}
+
+func (router *Router) ErrorFunc(f types.ErrorFunc) {
+	router.errorFunc = f
 }
 
 /*
@@ -110,8 +116,8 @@ func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h = router.middlewares[i](h)
 	}
 	ww := types.NewResponseWrapper(w)
-	err := h(ww, r)
-	router.loggerFunc(ww, r, err)
+	router.Catch(h)(ww, r)
+	router.loggerFunc(ww, r)
 }
 
 func (router *Router) Listen(addr string) error {
@@ -126,7 +132,7 @@ func (router *Router) handler(h types.Handler, middleware []types.Middleware) ht
 	for i := len(middleware) - 1; i >= 0; i-- {
 		h = middleware[i](h)
 	}
-	return Catch(h)
+	return router.Catch(h)
 }
 
 /*

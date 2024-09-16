@@ -3,17 +3,12 @@ package httpx
 import (
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/nskforward/httpx/types"
 )
 
-func defaultLoggerFunc(w *types.ResponseWrapper, r *http.Request, err error) {
-	if err != nil {
-		handleError(w, err)
-		slog.Error(strconv.Itoa(w.Status()), "error", err, "trace-id", r.Header.Get(types.XRequestId))
-	}
+func defaultLoggerFunc(w *types.ResponseWrapper, r *http.Request) {
 
 	slog.Info("access",
 		"status", w.Status(),
