@@ -3,7 +3,7 @@ package token
 import (
 	"bytes"
 	"crypto/hmac"
-	"crypto/sha256"
+	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"hash"
@@ -36,7 +36,7 @@ func NewEncoder(secret string) *Encoder {
 		},
 		hasher: sync.Pool{
 			New: func() any {
-				return hmac.New(sha256.New, []byte(secret))
+				return hmac.New(sha1.New, []byte(secret))
 			},
 		},
 	}
