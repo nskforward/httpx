@@ -10,14 +10,13 @@ import (
 
 func defaultLoggerFunc(w *types.ResponseWrapper, r *http.Request) {
 
-	slog.Info("access",
+	slog.Info(r.Method,
 		"status", w.Status(),
-		"method", r.Method,
 		"path", r.URL.Path,
 		"proto", r.Proto,
 		"request-id", r.Header.Get(types.XRequestId),
 		"peer", r.RemoteAddr,
-		"spend", time.Since(w.StartTime()).String(),
+		"spent", time.Since(w.StartTime()).String(),
 		"bytes", w.Size(),
 	)
 }

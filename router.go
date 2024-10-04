@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/a-h/templ"
-	"github.com/nskforward/httpx/cache"
 	"github.com/nskforward/httpx/transport"
 	"github.com/nskforward/httpx/types"
 )
@@ -69,18 +67,6 @@ func (router *Router) RouteHF(pattern string, h http.HandlerFunc, middlewares ..
 		pattern,
 		func(w http.ResponseWriter, r *http.Request) error {
 			h.ServeHTTP(w, r)
-			return nil
-		},
-		middlewares...,
-	)
-}
-
-func (router *Router) RouteV(pattern string, comp templ.Component, middlewares ...types.Middleware) *Router {
-	return router.Route(
-		pattern,
-		func(w http.ResponseWriter, r *http.Request) error {
-			cache.Prohibit(w)
-			templ.Handler(comp).ServeHTTP(w, r)
 			return nil
 		},
 		middlewares...,
