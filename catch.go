@@ -23,7 +23,7 @@ func (ro *Router) handleError(w http.ResponseWriter, r *http.Request, err error)
 	apiError, ok := err.(response.APIError)
 	if ok {
 		status = apiError.Status
-		if apiError.Text == "" || apiError.Status == 500 {
+		if apiError.Text == "" {
 			text = http.StatusText(apiError.Status)
 		} else {
 			text = apiError.Text

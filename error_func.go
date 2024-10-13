@@ -14,5 +14,6 @@ func defaultErrorFunc(w http.ResponseWriter, r *http.Request, status int, msg st
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
+
 	http.Error(w, msg, status)
 }
