@@ -8,6 +8,7 @@ import (
 
 type ResponseWrapper struct {
 	http.ResponseWriter
+	http.Flusher
 	status      int
 	size        int64
 	BeforeBody  func()
