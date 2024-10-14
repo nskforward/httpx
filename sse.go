@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type stream struct {
+type Stream struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	flusher http.Flusher
@@ -20,7 +20,7 @@ type stream struct {
 }
 
 type StreamEvent struct {
-	conn *stream
+	conn *Stream
 	name string
 	id   string
 	buf  *bytes.Buffer
@@ -32,7 +32,7 @@ var bufferPool = sync.Pool{
 	},
 }
 
-func Stream(w http.ResponseWriter, r *http.Request, callback ...func(s *stream) bool) error {
+func SSE(w http.ResponseWriter, r *http.Request, callback ...func(s *Stream) bool) error {
 	s, err := newStream(w, r)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func Stream(w http.ResponseWriter, r *http.Request, callback ...func(s *stream) 
 	return nil
 }
 
-func newStream(w http.ResponseWriter, r *http.Request) (*stream, error) {
+func newStream(w http.ResponseWriter, r *http.Request) (*Stream, error) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return nil, fmt.Errorf("http.ResponseWriter instance must implemend http.Flusher")
@@ -66,21 +66,21 @@ func newStream(w http.ResponseWriter, r *http.Request) (*stream, error) {
 
 	w.WriteHeader(http.StatusNoContent)
 
-	output := &stream{output: w, flusher: flusher, ctx: ctx, cancel: cancel, queue: make(chan *StreamEvent, 32)}
+	output := &Stream{output: w, flusher: flusher, ctx: ctx, cancel: cancel, queue: make(chan *StreamEvent, 32)}
 	go output.handleQueue()
 
 	return output, nil
 }
 
-func (s *stream) Close() {
+func (s *Stream) Close() {
 	close(s.queue)
 }
 
-func (s *stream) Context() context.Context {
+func (s *Stream) Context() context.Context {
 	return s.ctx
 }
 
-func (s *stream) handleQueue() {
+func (s *Stream) handleQueue() {
 	ticker := time.NewTicker(15 * time.Second)
 	for {
 		select {
@@ -108,7 +108,7 @@ func (s *stream) handleQueue() {
 	}
 }
 
-func (s *stream) send(event *StreamEvent) error {
+func (s *Stream) send(event *StreamEvent) error {
 	defer bufferPool.Put(event.buf)
 
 	err := s.sendField("event", []byte(event.name))
@@ -130,7 +130,7 @@ func (s *stream) send(event *StreamEvent) error {
 	return err
 }
 
-func (s *stream) sendField(field string, value []byte) error {
+func (s *Stream) sendField(field string, value []byte) error {
 	if len(value) == 0 {
 		slog.Info("SSE send with empty value", "field", field)
 		return nil
@@ -159,13 +159,13 @@ func (s *stream) sendField(field string, value []byte) error {
 	return nil
 }
 
-func (s *stream) WriteString(msg string) {
+func (s *Stream) WriteString(msg string) {
 	event := s.Event()
 	event.buf.WriteString(msg)
 	event.Send()
 }
 
-func (s *stream) Event() *StreamEvent {
+func (s *Stream) Event() *StreamEvent {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	return &StreamEvent{
