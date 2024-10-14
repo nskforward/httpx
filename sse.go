@@ -107,59 +107,44 @@ func (s *Stream) handleQueue() {
 }
 
 func (s *Stream) send(event *StreamEvent) error {
+	buf := bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufferPool.Put(buf)
 	defer bufferPool.Put(event.buf)
 
-	err := s.sendField("event", []byte(event.name))
+	if event.name != "" {
+		s.buffFillString(buf, "event", event.name)
+	}
+
+	if event.id != "" {
+		s.buffFillString(buf, "id", event.id)
+	}
+
+	s.buffFillBytes(buf, "data", event.buf.Bytes())
+
+	buf.WriteByte('\n')
+
+	_, err := io.Copy(s.output, buf)
 	if err != nil {
 		return err
 	}
-
-	err = s.sendField("id", []byte(event.id))
-	if err != nil {
-		return err
-	}
-
-	err = s.sendField("data", event.buf.Bytes())
-	if err != nil {
-		return err
-	}
-
-	_, err = s.output.Write([]byte("\n"))
-	if err != nil {
-		return nil
-	}
-
 	s.flusher.Flush()
+
 	return nil
 }
 
-func (s *Stream) sendField(field string, value []byte) error {
-	if len(value) == 0 {
-		slog.Info("SSE send with empty value", "field", field)
-		return nil
-	}
+func (s *Stream) buffFillBytes(buf *bytes.Buffer, field string, value []byte) {
+	buf.WriteString(field)
+	buf.WriteString(": ")
+	buf.Write(value)
+	buf.WriteByte('\n')
+}
 
-	_, err := s.output.Write([]byte(field))
-	if err != nil {
-		return err
-	}
-
-	_, err = s.output.Write([]byte(": "))
-	if err != nil {
-		return err
-	}
-	_, err = s.output.Write([]byte(value))
-	if err != nil {
-		return err
-	}
-	_, err = s.output.Write([]byte("\n"))
-	if err != nil {
-		return err
-	}
-
-	slog.Info("SSE send", "field", field, "value", string(value))
-
-	return nil
+func (s *Stream) buffFillString(buf *bytes.Buffer, field, value string) {
+	buf.WriteString(field)
+	buf.WriteString(": ")
+	buf.WriteString(value)
+	buf.WriteByte('\n')
 }
 
 func (s *Stream) WriteString(msg string) {
