@@ -99,6 +99,7 @@ func (s *Stream) handleQueue() {
 				s.cancel()
 				return
 			}
+			fmt.Println("try to send:", event.buf.String())
 			err := s.send(event)
 			if err != nil {
 				slog.Info("SSE send failed", "error", err)
@@ -184,8 +185,6 @@ func (event *StreamEvent) WriteString(s string) (int, error) {
 func (event *StreamEvent) Send() {
 	select {
 	case event.conn.queue <- event:
-		slog.Info("SSE enqueued")
 	default:
-		slog.Info("SSE not enqueued")
 	}
 }
