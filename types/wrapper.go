@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -58,6 +59,7 @@ func (ww *ResponseWrapper) WriteHeader(statusCode int) {
 
 func (ww *ResponseWrapper) Write(p []byte) (written int, err error) {
 	if !ww.wroteHeader {
+		fmt.Println("DEBUG write data without status code, content-length header: ", ww.Header().Get(ContentLength))
 		ww.WriteHeader(200)
 	}
 	written, err = ww.body.Write(p)
