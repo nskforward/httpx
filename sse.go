@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -61,17 +62,23 @@ func (s *Stream) handleQueue() {
 	ticker := time.NewTicker(15 * time.Second)
 	for {
 		select {
+
 		case <-s.ctx.Done():
+			slog.Info("SSE context done")
 			return
+
 		case <-ticker.C:
 			s.output.Write([]byte(":ping\n"))
+
 		case event, ok := <-s.queue:
 			if !ok {
+				slog.Info("SSE dequeued empty")
 				s.cancel()
 				return
 			}
 			err := s.send(event)
 			if err != nil {
+				slog.Info("SSE send failed", "error", err)
 				s.cancel()
 				return
 			}
@@ -103,12 +110,15 @@ func (s *Stream) send(event *StreamEvent) error {
 
 func (s *Stream) sendField(field string, value []byte) error {
 	if len(value) == 0 {
+		slog.Info("SSE send with empty value", "field", field)
 		return nil
 	}
+
 	_, err := s.output.Write([]byte(field))
 	if err != nil {
 		return err
 	}
+
 	_, err = s.output.Write([]byte(": "))
 	if err != nil {
 		return err
@@ -121,6 +131,9 @@ func (s *Stream) sendField(field string, value []byte) error {
 	if err != nil {
 		return err
 	}
+
+	slog.Info("SSE send", "field", field, "value", string(value))
+
 	return nil
 }
 
@@ -158,6 +171,8 @@ func (event *StreamEvent) WriteString(s string) (int, error) {
 func (event *StreamEvent) Send() {
 	select {
 	case event.conn.queue <- event:
+		slog.Info("SSE enqueued")
 	default:
+		slog.Info("SSE not enqueued")
 	}
 }
