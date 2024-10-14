@@ -97,6 +97,12 @@ func (s *Stream) send(event *StreamEvent) {
 	s.output.Write([]byte("\n\n"))
 }
 
+func (s *Stream) WriteString(msg string) {
+	event := s.Event()
+	event.buf.WriteString(msg)
+	event.Send()
+}
+
 func (s *Stream) Event() StreamEvent {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -108,10 +114,6 @@ func (s *Stream) Event() StreamEvent {
 
 func (event *StreamEvent) SetName(name string) {
 	event.name = name
-}
-
-func (event *StreamEvent) Context() context.Context {
-	return event.conn.ctx
 }
 
 func (event *StreamEvent) SetID(id string) {
