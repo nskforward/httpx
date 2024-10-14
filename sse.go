@@ -67,34 +67,61 @@ func (s *Stream) handleQueue() {
 			s.output.Write([]byte(":ping\n"))
 		case event, ok := <-s.queue:
 			if !ok {
+				s.cancel()
 				return
 			}
-			s.send(event)
+			err := s.send(event)
+			if err != nil {
+				s.cancel()
+				return
+			}
 		}
 	}
 }
 
-func (s *Stream) send(event *StreamEvent) {
+func (s *Stream) send(event *StreamEvent) error {
 	defer bufferPool.Put(event.buf)
 
-	if event.name != "" {
-		s.output.Write([]byte("event: "))
-		s.output.Write([]byte(event.name))
-		s.output.Write([]byte("\n"))
-	}
-
-	if event.id != "" {
-		s.output.Write([]byte("id: "))
-		s.output.Write([]byte(event.id))
-		s.output.Write([]byte("\n"))
-	}
-
-	_, err := s.output.Write([]byte("data: "))
+	err := s.sendField("event", []byte(event.name))
 	if err != nil {
-		return
+		return err
 	}
-	io.Copy(s.output, event.buf)
-	s.output.Write([]byte("\n\n"))
+
+	err = s.sendField("id", []byte(event.id))
+	if err != nil {
+		return err
+	}
+
+	err = s.sendField("data", event.buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	_, err = s.output.Write([]byte("\n"))
+	return err
+}
+
+func (s *Stream) sendField(field string, value []byte) error {
+	if len(value) == 0 {
+		return nil
+	}
+	_, err := s.output.Write([]byte(field))
+	if err != nil {
+		return err
+	}
+	_, err = s.output.Write([]byte(": "))
+	if err != nil {
+		return err
+	}
+	_, err = s.output.Write([]byte(value))
+	if err != nil {
+		return err
+	}
+	_, err = s.output.Write([]byte("\n"))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Stream) WriteString(msg string) {
@@ -103,10 +130,10 @@ func (s *Stream) WriteString(msg string) {
 	event.Send()
 }
 
-func (s *Stream) Event() StreamEvent {
+func (s *Stream) Event() *StreamEvent {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	return StreamEvent{
+	return &StreamEvent{
 		conn: s,
 		buf:  buf,
 	}
