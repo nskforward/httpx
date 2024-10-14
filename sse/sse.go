@@ -15,6 +15,9 @@ func Stream(w http.ResponseWriter, r *http.Request, content ...func(ctx context.
 		return fmt.Errorf("stream unsupported")
 	}
 
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-store")
+
 	queue := make(chan Event, 64)
 	defer close(queue)
 	var wg sync.WaitGroup
