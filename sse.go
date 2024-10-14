@@ -125,7 +125,12 @@ func (s *Stream) send(event *StreamEvent) error {
 	}
 
 	_, err = s.output.Write([]byte("\n"))
-	return err
+	if err != nil {
+		return nil
+	}
+
+	s.flusher.Flush()
+	return nil
 }
 
 func (s *Stream) sendField(field string, value []byte) error {
