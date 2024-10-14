@@ -58,6 +58,9 @@ func newStream(w http.ResponseWriter, r *http.Request) (*Stream, error) {
 	if !ok {
 		return nil, fmt.Errorf("http.ResponseWriter instance must implemend http.Flusher")
 	}
+
+	fmt.Println("stream supports flush")
+
 	ctx, cancel := context.WithCancel(r.Context())
 
 	w.Header().Set("Content-Type", "text/event-stream")

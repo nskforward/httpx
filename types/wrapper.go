@@ -9,7 +9,7 @@ import (
 
 type ResponseWrapper struct {
 	http.ResponseWriter
-	flusher     http.Flusher
+	http.Flusher
 	status      int
 	size        int64
 	BeforeBody  func()
@@ -19,11 +19,7 @@ type ResponseWrapper struct {
 }
 
 func NewResponseWrapper(w http.ResponseWriter) *ResponseWrapper {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		panic("w http.ResponseWriter does not implement http.Flusher")
-	}
-	return &ResponseWrapper{ResponseWriter: w, status: 200, body: w, started: time.Now(), flusher: flusher}
+	return &ResponseWrapper{ResponseWriter: w, status: 200, body: w, started: time.Now()}
 }
 
 func (ww *ResponseWrapper) Size() int64 {
@@ -68,5 +64,9 @@ func (ww *ResponseWrapper) Write(p []byte) (written int, err error) {
 }
 
 func (ww *ResponseWrapper) Flush() {
-	ww.flusher.Flush()
+	flusher, ok := ww.ResponseWriter.(http.Flusher)
+	if !ok {
+		panic("w http.ResponseWriter does not implement http.Flusher")
+	}
+	flusher.Flush()
 }
