@@ -43,6 +43,8 @@ func NewStream(w http.ResponseWriter, r *http.Request) (*Stream, error) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Accel-Buffering", "no")
 
+	w.WriteHeader(http.StatusNoContent)
+
 	output := &Stream{output: w, flusher: flusher, ctx: ctx, cancel: cancel, queue: make(chan *StreamEvent, 32)}
 	go output.handleQueue()
 
