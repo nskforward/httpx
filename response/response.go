@@ -48,8 +48,3 @@ func Range(w http.ResponseWriter, statusCode int, contentType string, r io.ReadS
 	// ranged response
 	return fmt.Errorf("not implemented")
 }
-
-func Stream(w http.ResponseWriter, statusCode int, contentType string, r io.Reader) error {
-	// chunked response
-	return fmt.Errorf("not implemented")
-}

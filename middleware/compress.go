@@ -69,7 +69,7 @@ func isAllowedContent(contentType string) bool {
 	if contentType == "" {
 		return false
 	}
-	for _, part := range []string{"text/", "application/javascript", "application/json"} {
+	for _, part := range []string{"text/html", "text/plain", "text/css", "text/javascript", "text/csv", "application/json"} {
 		if strings.Contains(contentType, part) {
 			return true
 		}
