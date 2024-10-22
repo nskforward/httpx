@@ -56,49 +56,48 @@ func Cors(options CorsOptions) types.Middleware {
 		return func(w http.ResponseWriter, r *http.Request) error {
 
 			origin := r.Header.Get("Origin")
-			if origin != "" && !slices.Contains(options.AllowOrigins, origin) {
-				return response.APIError{Status: http.StatusForbidden, Text: fmt.Sprintf("unknown origin: %s", origin)}
+			if origin != "" {
+				if len(options.AllowOrigins) > 0 {
+					if !slices.Contains(options.AllowOrigins, origin) {
+						return response.APIError{Status: http.StatusForbidden, Text: fmt.Sprintf("unknown origin: %s", origin)}
+					}
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+				} else {
+					w.Header().Set("Access-Control-Allow-Origin", "*")
+				}
+
+				if len(options.AllowMethods) > 0 {
+					w.Header().Set("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
+				} else {
+					w.Header().Set("Access-Control-Allow-Methods", "*")
+				}
+
+				if len(options.AllowedHeaders) > 0 {
+					w.Header().Set("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
+				} else {
+					w.Header().Set("Access-Control-Allow-Headers", "*")
+				}
+
+				if options.AllowCredentials {
+					w.Header().Set("Access-Control-Allow-Credentials", "true")
+				}
+
+				if len(options.ExposedHeaders) > 0 {
+					w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
+				} else {
+					w.Header().Set("Access-Control-Expose-Headers", "*")
+				}
+
+				w.Header().Set("Access-Control-Max-Age", maxAge)
 			}
 
 			if r.Method != http.MethodOptions || r.Header.Get("Access-Control-Request-Method") == "" {
-				if origin != "" {
-					w.Header().Set("Access-Control-Allow-Origin", origin)
-					if len(options.AllowMethods) > 0 {
-						w.Header().Set("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
-					}
-					if len(options.AllowedHeaders) > 0 {
-						w.Header().Set("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
-					}
-					if options.AllowCredentials {
-						w.Header().Set("Access-Control-Allow-Credentials", "true")
-					}
-					if len(options.ExposedHeaders) > 0 {
-						w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
-					}
-					w.Header().Set("Access-Control-Max-Age", maxAge)
-				}
 				return next(w, r)
 			}
 
 			if origin == "" {
 				return response.APIError{Status: http.StatusForbidden, Text: "origin request header cannot be empty"}
 			}
-
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			if len(options.AllowMethods) > 0 {
-				w.Header().Set("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
-			}
-			if len(options.AllowedHeaders) > 0 {
-				w.Header().Set("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
-			}
-			if options.AllowCredentials {
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-			}
-			if len(options.ExposedHeaders) > 0 {
-				w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
-			}
-			w.Header().Set("Access-Control-Max-Age", maxAge)
-
 			return response.NoContent(w)
 		}
 	}
