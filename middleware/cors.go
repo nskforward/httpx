@@ -74,35 +74,33 @@ func Cors(options CorsOptions) types.Middleware {
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
 
+			origin := r.Header.Get("Origin")
+			if origin != "" && !slices.Contains(options.AllowOrigins, origin) {
+				return response.APIError{Status: http.StatusForbidden, Text: fmt.Sprintf("unknown origin: %s", origin)}
+			}
+
 			if r.Method != http.MethodOptions || r.Header.Get("Access-Control-Request-Method") == "" {
-				/*
-					if origin != "" {
-						w.Header().Set("Access-Control-Allow-Origin", origin)
-						if len(options.AllowMethods) > 0 {
-							w.Header().Set("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
-						}
-						if len(options.AllowedHeaders) > 0 {
-							w.Header().Set("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
-						}
-						if options.AllowCredentials {
-							w.Header().Set("Access-Control-Allow-Credentials", "true")
-						}
-						if len(options.ExposedHeaders) > 0 {
-							w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
-						}
-						w.Header().Set("Access-Control-Max-Age", maxAge)
+				if origin != "" {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					if len(options.AllowMethods) > 0 {
+						w.Header().Set("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
 					}
-				*/
+					if len(options.AllowedHeaders) > 0 {
+						w.Header().Set("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
+					}
+					if options.AllowCredentials {
+						w.Header().Set("Access-Control-Allow-Credentials", "true")
+					}
+					if len(options.ExposedHeaders) > 0 {
+						w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
+					}
+					w.Header().Set("Access-Control-Max-Age", maxAge)
+				}
 				return next(w, r)
 			}
 
-			origin := r.Header.Get("Origin")
 			if origin == "" {
 				return response.APIError{Status: http.StatusForbidden, Text: "origin request header cannot be empty"}
-			}
-
-			if !slices.Contains(options.AllowOrigins, origin) {
-				return response.APIError{Status: http.StatusForbidden, Text: fmt.Sprintf("unknown origin: %s", origin)}
 			}
 
 			w.Header().Set("Access-Control-Allow-Origin", origin)
