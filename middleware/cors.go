@@ -12,7 +12,7 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-type CorsParams struct {
+type CorsOptions struct {
 	AllowOrigins     []string
 	AllowMethods     []string
 	AllowedHeaders   []string
@@ -21,52 +21,8 @@ type CorsParams struct {
 	MaxAge           time.Duration
 }
 
-type CorsParamFunc func(*CorsParams)
-
-func CorsAllowOrigins(origins []string) CorsParamFunc {
-	return func(params *CorsParams) {
-		params.AllowOrigins = origins
-	}
-}
-
-func CorsAllowMethods(methods []string) CorsParamFunc {
-	return func(params *CorsParams) {
-		params.AllowMethods = methods
-	}
-}
-
-func CorsAllowCredentials(value bool) CorsParamFunc {
-	return func(params *CorsParams) {
-		params.AllowCredentials = value
-	}
-}
-
-func CorsMaxAge(ttl time.Duration) CorsParamFunc {
-	return func(params *CorsParams) {
-		params.MaxAge = ttl
-	}
-}
-
-func Cors(params ...CorsParamFunc) types.Middleware {
-
-	options := CorsParams{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "HEAD"},
-		AllowedHeaders:   []string{},
-		AllowCredentials: false,
-		ExposedHeaders:   []string{},
-		MaxAge:           time.Minute,
-	}
-
-	for _, fn := range params {
-		fn(&options)
-	}
-
-	if len(options.AllowOrigins) == 0 {
-		panic("Cors.AllowOrigins cannot be empty")
-	}
-
-	if options.AllowOrigins[0] == "*" && options.AllowCredentials {
+func Cors(options CorsOptions) types.Middleware {
+	if len(options.AllowOrigins) > 0 && options.AllowOrigins[0] == "*" && options.AllowCredentials {
 		panic("cannot use wildcard in Cors.AllowOrigins with enabled Cors.AllowCredentials")
 	}
 
@@ -80,6 +36,11 @@ func Cors(params ...CorsParamFunc) types.Middleware {
 
 	if len(options.ExposedHeaders) > 0 && options.ExposedHeaders[0] == "*" && options.AllowCredentials {
 		panic("cannot use wildcard in Cors.ExposedHeaders with enabled Cors.AllowCredentials")
+	}
+
+	maxAge := "3600"
+	if options.MaxAge > 0 {
+		maxAge = strconv.FormatFloat(options.MaxAge.Seconds(), 'f', 0, 64)
 	}
 
 	return func(next types.Handler) types.Handler {
@@ -111,7 +72,7 @@ func Cors(params ...CorsParamFunc) types.Middleware {
 			if len(options.ExposedHeaders) > 0 {
 				w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
 			}
-			w.Header().Set("Access-Control-Max-Age", strconv.FormatFloat(options.MaxAge.Seconds(), 'f', 0, 64))
+			w.Header().Set("Access-Control-Max-Age", maxAge)
 
 			return response.NoContent(w)
 		}
