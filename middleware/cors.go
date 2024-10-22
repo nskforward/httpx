@@ -23,15 +23,43 @@ type CorsOptions struct {
 
 func Cors(options CorsOptions) types.Middleware {
 	if len(options.AllowOrigins) > 0 && options.AllowOrigins[0] == "*" && options.AllowCredentials {
-		panic("cannot use wildcard in Cors.AllowOrigins with enabled Cors.AllowCredentials")
+		panic("cors: cannot use wildcard in AllowOrigins with enabled AllowCredentials")
 	}
 
 	if len(options.AllowMethods) > 0 && options.AllowMethods[0] == "*" && options.AllowCredentials {
-		panic("cannot use wildcard in Cors.AllowMethods with enabled Cors.AllowCredentials")
+		panic("cors: cannot use wildcard in AllowMethods with enabled AllowCredentials")
 	}
 
 	if len(options.AllowedHeaders) > 0 && options.AllowedHeaders[0] == "*" && options.AllowCredentials {
-		panic("cannot use wildcard in Cors.AllowedHeaders with enabled Cors.AllowCredentials")
+		panic("cors: cannot use wildcard in AllowedHeaders with enabled AllowCredentials")
+	}
+
+	for _, origin := range options.AllowOrigins {
+		if origin == "*" && len(options.AllowOrigins) > 1 {
+			panic("cors: AllowOrigins cannot contain several values with wildcard")
+		}
+		if origin == "*" {
+			continue
+		}
+		if origin == "null" {
+			continue
+		}
+		if origin == "" {
+			panic("cors: AllowOrigins contains empty value")
+		}
+		if !strings.HasPrefix(origin, "http") {
+			panic("cors: AllowOrigins value must begin with 'http'")
+		}
+		if strings.HasSuffix(origin, "/") {
+			panic("cors: AllowOrigins value cannot end with '/'")
+		}
+	}
+
+	standardHeaders := []string{"accept", "accept-language", "content-language", "content-type", "range"}
+	for _, h := range options.AllowedHeaders {
+		if slices.Contains(standardHeaders, strings.ToLower(h)) {
+			panic(fmt.Sprintf("cors: AllowedHeaders contains standard header that is always allowed by default: %s", h))
+		}
 	}
 
 	if len(options.ExposedHeaders) > 0 && options.ExposedHeaders[0] == "*" && options.AllowCredentials {
