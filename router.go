@@ -20,8 +20,8 @@ func NewRouter() *Router {
 	r := &Router{
 		mux:         http.NewServeMux(),
 		middlewares: make([]types.Middleware, 0, 8),
-		loggerFunc:  defaultLoggerFunc,
-		errorFunc:   defaultErrorFunc,
+		loggerFunc:  DefaultLoggerFunc,
+		errorFunc:   DefaultErrorFunc,
 	}
 	return r
 }

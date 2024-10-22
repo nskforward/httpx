@@ -7,7 +7,7 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-func defaultErrorFunc(w http.ResponseWriter, r *http.Request, status int, msg string) {
+func DefaultErrorFunc(w http.ResponseWriter, r *http.Request, status int, msg string) {
 	slog.Error(msg, "trace-id", r.Header.Get(types.XRequestId))
 
 	if status/100 == 5 {
