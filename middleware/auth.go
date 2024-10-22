@@ -33,6 +33,9 @@ func BasicAuth(realm string, creds map[string]string) types.Middleware {
 	}
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
+			if r.Method == "GET" && r.URL.Path == "/healthcheck" {
+				return next(w, r)
+			}
 			user, pass, ok := r.BasicAuth()
 			if !ok {
 				return basicAuthFailed(w, realm)
