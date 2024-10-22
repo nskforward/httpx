@@ -82,6 +82,19 @@ func Cors(options CorsOptions) types.Middleware {
 			if r.Method != http.MethodOptions || r.Header.Get("Access-Control-Request-Method") == "" {
 				if origin != "" {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
+					if len(options.AllowMethods) > 0 {
+						w.Header().Set("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
+					}
+					if len(options.AllowedHeaders) > 0 {
+						w.Header().Set("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
+					}
+					if options.AllowCredentials {
+						w.Header().Set("Access-Control-Allow-Credentials", "true")
+					}
+					if len(options.ExposedHeaders) > 0 {
+						w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
+					}
+					w.Header().Set("Access-Control-Max-Age", maxAge)
 				}
 				return next(w, r)
 			}
