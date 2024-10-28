@@ -6,10 +6,6 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-type SecurityHeaders struct {
-	// TODO
-}
-
 func AddSecurityHeaders(next types.Handler) types.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		// Strict-Transport-Security tells the browser should remember that a site is only to be accessed using HTTPS
