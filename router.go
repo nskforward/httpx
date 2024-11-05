@@ -12,7 +12,6 @@ import (
 type Router struct {
 	mux         *http.ServeMux
 	middlewares []types.Middleware
-	loggerFunc  types.LoggerFunc
 	errorFunc   types.ErrorFunc
 }
 
@@ -20,14 +19,9 @@ func NewRouter() *Router {
 	r := &Router{
 		mux:         http.NewServeMux(),
 		middlewares: make([]types.Middleware, 0, 8),
-		loggerFunc:  DefaultLoggerFunc,
 		errorFunc:   DefaultErrorFunc,
 	}
 	return r
-}
-
-func (router *Router) LoggerFunc(f types.LoggerFunc) {
-	router.loggerFunc = f
 }
 
 func (router *Router) ErrorFunc(f types.ErrorFunc) {
@@ -88,22 +82,6 @@ func (router *Router) Use(middlewares ...types.Middleware) {
 		panic(fmt.Errorf("uninitialized router"))
 	}
 	router.middlewares = append(router.middlewares, middlewares...)
-}
-
-func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if router.mux == nil {
-		panic(fmt.Errorf("uninitialized router"))
-	}
-	h := func(ww http.ResponseWriter, rr *http.Request) error {
-		router.mux.ServeHTTP(ww, rr)
-		return nil
-	}
-	for i := len(router.middlewares) - 1; i >= 0; i-- {
-		h = router.middlewares[i](h)
-	}
-	ww := types.NewResponseWrapper(w)
-	router.Catch(h)(ww, r)
-	router.loggerFunc(ww, r)
 }
 
 func (router *Router) Listen(addr string) error {
