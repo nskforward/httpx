@@ -9,7 +9,7 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-func DefaultLoggerFunc(w *types.ResponseWrapper, r *http.Request) {
+func DefaultLogger(w *types.ResponseWrapper, r *http.Request) {
 
 	slog.Info(r.Method,
 		"status", w.Status(),
