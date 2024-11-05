@@ -39,7 +39,7 @@ func TestRecover(t *testing.T) {
 
 	var r httpx.Router
 
-	r.Use(middleware.Recover, middleware.RequestID)
+	r.Use(middleware.Recover, middleware.TraceIDSetter)
 	r.Use(mw(1, false, false))
 
 	r.Route("/api/v1/", h, mw(2, false, false))

@@ -29,7 +29,7 @@ func TestProxyLB(t *testing.T) {
 	defer backend1.Close()
 
 	var r httpx.Router
-	r.Use(middleware.RequestID)
+	r.Use(middleware.TraceIDSetter)
 	r.Route("/api/v1/", proxy.LoadBalancer([]string{backend1.URL, backend2.URL}))
 
 	frontendProxy := httptest.NewServer(&r)

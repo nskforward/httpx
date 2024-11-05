@@ -10,7 +10,7 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-var ContextAuthString types.ContextParam = "middleware.auth.string"
+var contextAuthString types.ContextParam = "middleware.auth.string"
 
 func TokenAuth(secret string) types.Middleware {
 	enc := token.NewEncoder(secret)
@@ -20,7 +20,7 @@ func TokenAuth(secret string) types.Middleware {
 			if err != nil {
 				return response.APIError{Status: http.StatusUnauthorized, Text: err.Error()}
 			}
-			r = types.SetParam(r, ContextAuthString, token)
+			r = types.SetParam(r, contextAuthString, token)
 			return next(w, r)
 		}
 	}
@@ -44,14 +44,14 @@ func BasicAuth(realm string, creds map[string]string) types.Middleware {
 			if !ok || subtle.ConstantTimeCompare([]byte(pass), []byte(credPass)) != 1 {
 				return basicAuthFailed(w, realm)
 			}
-			r = types.SetParam(r, ContextAuthString, user)
+			r = types.SetParam(r, contextAuthString, user)
 			return next(w, r)
 		}
 	}
 }
 
 func GetAuthString(r *http.Request) string {
-	val := types.GetParam(r, ContextAuthString)
+	val := types.GetParam(r, contextAuthString)
 	if val == nil {
 		return ""
 	}

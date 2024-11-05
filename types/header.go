@@ -23,5 +23,5 @@ const (
 	XRealIP                 = "X-Real-IP"
 	XForwardedFor           = "X-Forwarded-For"
 	XCache                  = "X-Cache"
-	XRequestId              = "X-Request-Id"
+	XTraceID                = "X-Trace-Id"
 )
