@@ -10,7 +10,7 @@ func Logging(f func(*types.ResponseWrapper, *http.Request)) types.Middleware {
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			ww := types.NewResponseWrapper(w)
-			err := next(w, r)
+			err := next(ww, r)
 			f(ww, r)
 			return err
 		}
