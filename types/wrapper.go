@@ -15,6 +15,7 @@ type ResponseWrapper struct {
 	body        io.Writer
 	wroteHeader bool
 	started     time.Time
+	skipBody    bool
 }
 
 func NewResponseWrapper(w http.ResponseWriter) *ResponseWrapper {
@@ -31,6 +32,10 @@ func (ww *ResponseWrapper) StartTime() time.Time {
 
 func (ww *ResponseWrapper) Status() int {
 	return ww.status
+}
+
+func (ww *ResponseWrapper) SkipBody() {
+	ww.skipBody = true
 }
 
 func (ww *ResponseWrapper) SetWriter(w io.Writer) {
@@ -57,6 +62,9 @@ func (ww *ResponseWrapper) WriteHeader(statusCode int) {
 func (ww *ResponseWrapper) Write(p []byte) (written int, err error) {
 	if !ww.wroteHeader {
 		ww.WriteHeader(200)
+	}
+	if ww.skipBody {
+		return len(p), nil
 	}
 	written, err = ww.body.Write(p)
 	ww.size += int64(written)
