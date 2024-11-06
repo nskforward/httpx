@@ -16,6 +16,7 @@ type ResponseWrapper struct {
 	wroteHeader bool
 	started     time.Time
 	skipBody    bool
+	writing     bool
 }
 
 func NewResponseWrapper(w http.ResponseWriter) *ResponseWrapper {
@@ -49,8 +50,13 @@ func (ww *ResponseWrapper) WriteHeader(statusCode int) {
 
 	ww.status = statusCode
 
-	if ww.BeforeBody != nil {
+	if ww.BeforeBody != nil && !ww.writing {
+		ww.writing = true
 		ww.BeforeBody()
+		ww.writing = false
+	}
+	if ww.wroteHeader {
+		return
 	}
 	if ww.body == nil {
 		panic("response.Writer body is nil")
