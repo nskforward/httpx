@@ -12,6 +12,7 @@ func NotFound(handler func(http.ResponseWriter, *http.Request)) types.Middleware
 			ww := types.NewResponseWrapper(w)
 			ww.BeforeBody = func() {
 				if ww.Status() == 404 {
+					ww.WriteHeader(404)
 					handler(ww, r)
 					ww.SkipBody()
 				}
