@@ -78,7 +78,11 @@ func Cors(options CorsOptions) types.Middleware {
 				return err
 			}
 
-			return response.NoContent(w)
+			if r.Method == http.MethodOptions {
+				return response.NoContent(w)
+			}
+
+			return next(w, r)
 		}
 	}
 }
