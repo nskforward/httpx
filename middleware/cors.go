@@ -19,6 +19,8 @@ type CorsOptions struct {
 	ExposedHeaders   []string
 	AllowCredentials bool
 	MaxAge           time.Duration
+	allowAnyOrigin   bool
+	maxAgeSting      string
 }
 
 func Cors(options CorsOptions) types.Middleware {
@@ -43,62 +45,75 @@ func Cors(options CorsOptions) types.Middleware {
 		}
 	}
 
-	if len(options.ExposedHeaders) > 0 && options.ExposedHeaders[0] == "*" && options.AllowCredentials {
-		panic("cannot use wildcard in Cors.ExposedHeaders with enabled Cors.AllowCredentials")
+	options.maxAgeSting = "3600"
+	if options.MaxAge > 0 {
+		options.maxAgeSting = strconv.FormatFloat(options.MaxAge.Seconds(), 'f', 0, 64)
 	}
 
-	maxAge := "3600"
-	if options.MaxAge > 0 {
-		maxAge = strconv.FormatFloat(options.MaxAge.Seconds(), 'f', 0, 64)
+	if len(options.AllowOrigins) == 0 || options.AllowOrigins[0] == "*" {
+		options.allowAnyOrigin = true
+	}
+
+	if options.allowAnyOrigin && options.AllowCredentials {
+		panic("cors: AllowCredentials can be used only with exact origin(s)")
 	}
 
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
 
 			origin := r.Header.Get("Origin")
-			if origin != "" {
-				if len(options.AllowOrigins) > 0 {
-					if !slices.Contains(options.AllowOrigins, origin) {
-						return response.APIError{Status: http.StatusForbidden, Text: fmt.Sprintf("unknown origin: %s", origin)}
-					}
-					w.Header().Set("Access-Control-Allow-Origin", origin)
-				} else {
-					w.Header().Set("Access-Control-Allow-Origin", "*")
-				}
 
-				if len(options.AllowMethods) > 0 {
-					w.Header().Set("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
-				} else {
-					w.Header().Set("Access-Control-Allow-Methods", "*")
-				}
-
-				if len(options.AllowedHeaders) > 0 {
-					w.Header().Set("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
-				} else {
-					w.Header().Set("Access-Control-Allow-Headers", "*")
-				}
-
-				if options.AllowCredentials {
-					w.Header().Set("Access-Control-Allow-Credentials", "true")
-				}
-
-				if len(options.ExposedHeaders) > 0 {
-					w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
-				} else {
-					w.Header().Set("Access-Control-Expose-Headers", "*")
-				}
-
-				w.Header().Set("Access-Control-Max-Age", maxAge)
-			}
-
-			if r.Method != http.MethodOptions || r.Header.Get("Access-Control-Request-Method") == "" {
+			if origin == "" {
+				w.Header().Set("Vary", "Origin")
 				return next(w, r)
 			}
 
-			if origin == "" {
-				return response.APIError{Status: http.StatusForbidden, Text: "origin request header cannot be empty"}
+			if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") == "" {
+				w.Header().Set("Vary", "Origin")
+				return next(w, r)
 			}
+
+			err := corsSendHeaders(w, options, origin)
+			if err != nil {
+				return err
+			}
+
 			return response.NoContent(w)
 		}
 	}
+}
+
+func corsSendHeaders(w http.ResponseWriter, options CorsOptions, origin string) error {
+	if options.allowAnyOrigin {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+	}
+	if !options.allowAnyOrigin && !slices.Contains(options.AllowOrigins, origin) {
+		return response.APIError{Status: http.StatusForbidden, Text: fmt.Sprintf("unknown origin: %s", origin)}
+	}
+	w.Header().Set("Access-Control-Allow-Origin", origin)
+
+	if len(options.AllowMethods) > 0 {
+		w.Header().Set("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
+	} else {
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+	}
+
+	if len(options.AllowedHeaders) > 0 {
+		w.Header().Set("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
+	} else {
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+	}
+
+	if options.AllowCredentials {
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+	}
+
+	if len(options.ExposedHeaders) > 0 {
+		w.Header().Set("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
+	} else {
+		w.Header().Set("Access-Control-Expose-Headers", "*")
+	}
+
+	w.Header().Set("Access-Control-Max-Age", options.maxAgeSting)
+	return nil
 }
