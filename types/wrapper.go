@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -19,7 +18,7 @@ type ResponseWrapper struct {
 }
 
 func NewResponseWrapper(w http.ResponseWriter) *ResponseWrapper {
-	return &ResponseWrapper{ResponseWriter: w, status: 0, body: w, started: time.Now()}
+	return &ResponseWrapper{ResponseWriter: w, status: 404, body: w, started: time.Now()}
 }
 
 func (ww *ResponseWrapper) Size() int64 {
@@ -39,8 +38,6 @@ func (ww *ResponseWrapper) SetWriter(w io.Writer) {
 }
 
 func (ww *ResponseWrapper) WriteHeader(statusCode int) {
-	fmt.Println("set status", statusCode)
-
 	if ww.wroteHeader {
 		return
 	}
@@ -59,7 +56,6 @@ func (ww *ResponseWrapper) WriteHeader(statusCode int) {
 
 func (ww *ResponseWrapper) Write(p []byte) (written int, err error) {
 	if !ww.wroteHeader {
-		fmt.Println("force set 200")
 		ww.WriteHeader(200)
 	}
 	written, err = ww.body.Write(p)
