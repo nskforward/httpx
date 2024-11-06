@@ -16,7 +16,7 @@ func NotFound(handler func(http.ResponseWriter, *http.Request)) types.Middleware
 					ww.SkipBody()
 				}
 			}
-			return next(w, r)
+			return next(ww, r)
 		}
 	}
 }
