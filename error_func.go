@@ -8,6 +8,7 @@ import (
 )
 
 func DefaultErrorFunc(w http.ResponseWriter, r *http.Request, status int, msg string) {
+
 	slog.Error(msg, "trace-id", middleware.GetTraceID(r.Context()))
 
 	if status/100 == 5 {

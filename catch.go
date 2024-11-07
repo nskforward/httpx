@@ -7,12 +7,14 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-func (ro *Router) Catch(handler types.Handler) http.HandlerFunc {
+func (ro *Router) Catch(next types.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := handler(w, r)
+		ww := types.NewResponseWrapper(w)
+		err := next(ww, r)
 		if err != nil {
-			ro.handleError(w, r, err)
+			ro.handleError(ww, r, err)
 		}
+		ro.loggerFunc(ww, r)
 	}
 }
 

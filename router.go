@@ -13,6 +13,7 @@ type Router struct {
 	mux         *http.ServeMux
 	middlewares []types.Middleware
 	errorFunc   types.ErrorFunc
+	loggerFunc  types.LoggerFunc
 }
 
 func NewRouter() *Router {
@@ -20,12 +21,17 @@ func NewRouter() *Router {
 		mux:         http.NewServeMux(),
 		middlewares: make([]types.Middleware, 0, 8),
 		errorFunc:   DefaultErrorFunc,
+		loggerFunc:  DefaultLogger,
 	}
 	return r
 }
 
 func (router *Router) ErrorFunc(f types.ErrorFunc) {
 	router.errorFunc = f
+}
+
+func (router *Router) LoggerFunc(f types.LoggerFunc) {
+	router.loggerFunc = f
 }
 
 /*
