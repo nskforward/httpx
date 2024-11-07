@@ -6,13 +6,11 @@ import (
 	"testing"
 
 	"github.com/nskforward/httpx"
-	"github.com/nskforward/httpx/middleware"
 	"github.com/nskforward/httpx/types"
 )
 
 func TestFile(t *testing.T) {
 	var r httpx.Router
-	r.Use(middleware.TraceIDSetter)
 	r.Route("/api/v1/", httpx.ServeFile("data/static/123.html"))
 
 	s := httptest.NewServer(&r)

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/nskforward/httpx"
-	"github.com/nskforward/httpx/middleware"
 	"github.com/nskforward/httpx/proxy"
 	"github.com/nskforward/httpx/types"
 )
@@ -29,7 +28,6 @@ func TestProxyLB(t *testing.T) {
 	defer backend1.Close()
 
 	var r httpx.Router
-	r.Use(middleware.TraceIDSetter)
 	r.Route("/api/v1/", proxy.LoadBalancer([]string{backend1.URL, backend2.URL}))
 
 	frontendProxy := httptest.NewServer(&r)

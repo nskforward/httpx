@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/nskforward/httpx"
-	"github.com/nskforward/httpx/middleware"
 	"github.com/nskforward/httpx/response"
 	"github.com/nskforward/httpx/types"
 )
@@ -39,7 +38,6 @@ func TestRecover(t *testing.T) {
 
 	var r httpx.Router
 
-	r.Use(middleware.Recover, middleware.TraceIDSetter)
 	r.Use(mw(1, false, false))
 
 	r.Route("/api/v1/", h, mw(2, false, false))

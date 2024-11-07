@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nskforward/httpx/middleware"
 	"github.com/nskforward/httpx/types"
 )
 
@@ -15,7 +14,7 @@ func DefaultLogger(w *types.ResponseWrapper, r *http.Request) {
 		"status", w.Status(),
 		"path", r.URL.Path,
 		"proto", r.Proto,
-		"trace-id", middleware.GetTraceID(r.Context()),
+		"trace-id", TraceID(r.Context()),
 		"peer", r.RemoteAddr,
 		"spent", time.Since(w.StartTime()).String(),
 		"bytes", w.Size(),

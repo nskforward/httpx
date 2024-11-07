@@ -28,7 +28,6 @@ func TestProxySingle(t *testing.T) {
 
 	// PROXY
 	pr := httpx.NewRouter()
-	pr.Use(m.Recover, m.TraceIDSetter)
 	pr.Route("/", proxy.Reverse(backend.URL), m.SetHeader("Server", "proxy", true))
 	pr.Route("/test", httpx.Text("hello from proxy!"), m.SetHeader("Server", "proxy", true))
 	frontend := httptest.NewServer(pr)

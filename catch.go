@@ -9,12 +9,19 @@ import (
 
 func (ro *Router) Catch(next types.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_ = traceIDSetter(ro.logging(recoverPanic(next)))(w, r)
+	}
+}
+
+func (ro *Router) logging(next types.Handler) types.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
 		ww := types.NewResponseWrapper(w)
 		err := next(ww, r)
 		if err != nil {
 			ro.handleError(ww, r, err)
 		}
 		ro.loggerFunc(ww, r)
+		return nil
 	}
 }
 

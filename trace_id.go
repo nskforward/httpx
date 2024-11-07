@@ -1,4 +1,4 @@
-package middleware
+package httpx
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 var contextTraceID types.ContextParam = "middleware.trace.id"
 
-func TraceIDSetter(next types.Handler) types.Handler {
+func traceIDSetter(next types.Handler) types.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 
 		id := r.Header.Get(types.XTraceID)
@@ -25,7 +25,7 @@ func TraceIDSetter(next types.Handler) types.Handler {
 	}
 }
 
-func GetTraceID(ctx context.Context) string {
+func TraceID(ctx context.Context) string {
 	id := ctx.Value(contextTraceID)
 	if id == nil {
 		return ""
