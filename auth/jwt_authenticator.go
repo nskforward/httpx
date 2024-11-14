@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"fmt"
+	"github.com/nskforward/httpx/jwt"
 )
 
 var _ Authenticator = (*BasicAuthenticator)(nil)
@@ -17,5 +17,13 @@ func NewJWTAuthenticator(secret string) *JWTAuthenticator {
 }
 
 func (a *JWTAuthenticator) Authenticate(token string) (any, error) {
-	return nil, fmt.Errorf("not implemented")
+	t, err := jwt.Parse(token)
+	if err != nil {
+		return nil, err
+	}
+	err = t.Verify(a.secret)
+	if err != nil {
+		return nil, err
+	}
+	return t.Claims, nil
 }
