@@ -9,7 +9,7 @@ import (
 
 func (ro *Router) Catch(next types.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_ = traceIDSetter(ro.logging(recoverPanic(next)))(w, r)
+		_ = traceIDSetter(ro.logging(next))(w, r)
 	}
 }
 

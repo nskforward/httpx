@@ -16,13 +16,13 @@ func TestRateLimiter(t *testing.T) {
 
 	// BACKEND
 	backend1 := httptest.NewServer(
-		httpx.NewRouter().Route("/", httpx.Text("success"), m.RealIP, m.SetHeader("Server", "backend", false)),
+		httpx.NewRouter().Route("/", httpx.Text("success"), m.RealIP),
 	)
 	defer backend1.Close()
 
 	// PROXY
 	r := httpx.NewRouter()
-	r.Use(m.SetHeader("Server", "proxy", true), m.RateLimiter(
+	r.Use(m.RateLimiter(
 		time.Second,
 		1,
 		2*time.Second,

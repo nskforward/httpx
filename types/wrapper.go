@@ -12,6 +12,7 @@ type ResponseWrapper struct {
 	status      int
 	size        int64
 	BeforeBody  func()
+	AllowHeader func(name string, values []string) bool
 	body        io.Writer
 	wroteHeader bool
 	started     time.Time
@@ -49,6 +50,14 @@ func (ww *ResponseWrapper) WriteHeader(statusCode int) {
 	}
 
 	ww.status = statusCode
+
+	if ww.AllowHeader != nil {
+		for name, values := range ww.Header() {
+			if !ww.AllowHeader(name, values) {
+				ww.Header().Del(name)
+			}
+		}
+	}
 
 	if ww.BeforeBody != nil && !ww.writing {
 		ww.writing = true

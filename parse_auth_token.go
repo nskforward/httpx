@@ -1,4 +1,4 @@
-package auth
+package httpx
 
 import (
 	"net/http"
@@ -8,20 +8,20 @@ import (
 	"github.com/nskforward/httpx/types"
 )
 
-func ParseToken(r *http.Request) (ok bool, scheme, token string) {
+func ParseAuthToken(r *http.Request) (token, scheme string, ok bool) {
 	authorization := r.Header.Get(types.Authorization)
 	if authorization == "" {
-		return false, "", ""
+		return "", "", false
 	}
 	items := strings.Split(authorization, " ")
 	items = slices.DeleteFunc(items, func(item string) bool {
 		return item == " "
 	})
 	if len(items) == 2 {
-		return true, items[0], items[1]
+		return items[1], items[0], true
 	}
 	if len(items) == 1 {
-		return true, "", items[0]
+		return items[0], "", true
 	}
-	return false, "", ""
+	return "", "", false
 }

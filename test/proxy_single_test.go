@@ -17,7 +17,7 @@ func TestProxySingle(t *testing.T) {
 
 	// BACKEND
 	br := httpx.NewRouter()
-	br.Use(m.RealIP, m.SetHeader("Server", "backend", false))
+	br.Use(m.RealIP)
 	br.Route("/", httpx.Echo)
 	br.Route("/cookies", func(w http.ResponseWriter, r *http.Request) error {
 		fmt.Println("cookies:", r.Header.Get("Cookie"))
@@ -28,8 +28,8 @@ func TestProxySingle(t *testing.T) {
 
 	// PROXY
 	pr := httpx.NewRouter()
-	pr.Route("/", proxy.Reverse(backend.URL), m.SetHeader("Server", "proxy", true))
-	pr.Route("/test", httpx.Text("hello from proxy!"), m.SetHeader("Server", "proxy", true))
+	pr.Route("/", proxy.Reverse(backend.URL))
+	pr.Route("/test", httpx.Text("hello from proxy!"))
 	frontend := httptest.NewServer(pr)
 	defer frontend.Close()
 
