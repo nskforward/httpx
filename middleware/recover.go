@@ -12,11 +12,16 @@ func Recover(onPanic func(err error, trace string)) types.Middleware {
 	return func(next types.Handler) types.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			defer func() {
-				if err := recover(); r != nil {
+				if r := recover(); r != nil {
+					err, ok := r.(error)
+					if !ok {
+						err = fmt.Errorf("%v", r)
+
+					}
 					if err == http.ErrAbortHandler {
 						panic(err)
 					}
-					onPanic(fmt.Errorf("%s", err), string(debug.Stack()))
+					onPanic(err, string(debug.Stack()))
 					http.Error(w, "Internal Server Error", 500)
 				}
 			}()
