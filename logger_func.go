@@ -10,7 +10,8 @@ import (
 
 func DefaultLogger(w *types.ResponseWrapper, r *http.Request) {
 
-	slog.Info(r.Method,
+	slog.Info("http request",
+		"method", r.Method,
 		"status", w.Status(),
 		"path", r.URL.Path,
 		"proto", r.Proto,
