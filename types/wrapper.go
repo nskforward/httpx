@@ -15,6 +15,7 @@ type ResponseWrapper struct {
 	AllowHeader func(name string, values []string) bool
 	body        io.Writer
 	wroteHeader bool
+	timeTaken   time.Duration
 	started     time.Time
 	skipBody    bool
 	writing     bool
@@ -28,8 +29,8 @@ func (ww *ResponseWrapper) Size() int64 {
 	return ww.size
 }
 
-func (ww *ResponseWrapper) StartTime() time.Time {
-	return ww.started
+func (ww *ResponseWrapper) TimeTaken() time.Duration {
+	return ww.timeTaken
 }
 
 func (ww *ResponseWrapper) Status() int {
@@ -50,6 +51,7 @@ func (ww *ResponseWrapper) WriteHeader(statusCode int) {
 	}
 
 	ww.status = statusCode
+	ww.timeTaken = time.Since(ww.started)
 
 	if ww.AllowHeader != nil {
 		for name, values := range ww.Header() {

@@ -3,7 +3,6 @@ package httpx
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/nskforward/httpx/types"
 )
@@ -17,7 +16,7 @@ func DefaultLogger(w *types.ResponseWrapper, r *http.Request) {
 		"proto", r.Proto,
 		"trace-id", TraceID(r.Context()),
 		"peer", r.RemoteAddr,
-		"spent", time.Since(w.StartTime()).String(),
+		"spent", w.TimeTaken().String(),
 		"bytes", w.Size(),
 	)
 }
