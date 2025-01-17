@@ -6,11 +6,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-
-	"github.com/nskforward/httpx/types"
+	"strings"
 )
 
-func ServeFile(filePath string) types.Handler {
+func ServeFile(filePath string) Handler {
 	fi, err := os.Stat(filePath)
 	if err != nil {
 		panic(fmt.Errorf("cannot find the file: %w", err))
@@ -19,8 +18,8 @@ func ServeFile(filePath string) types.Handler {
 		panic(fmt.Errorf("file cannot be a dir: %s", filePath))
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) error {
-		http.ServeFile(w, r, filePath)
+	return func(ctx *Context) error {
+		http.ServeFile(ctx.w, ctx.req, filePath)
 		return nil
 	}
 }
@@ -43,7 +42,7 @@ func ServeFile(filePath string) types.Handler {
 		GET	/static/1.html  -->  200 OK  /data/static/1.html
 		GET	/static/2.html  -->  200 OK  /data/static/2.html
 */
-func ServeDir(dir string) types.Handler {
+func ServeDir(dir, stripPrefix string) Handler {
 	fi, err := os.Stat(dir)
 	if err != nil {
 		panic(dir)
@@ -54,8 +53,12 @@ func ServeDir(dir string) types.Handler {
 
 	fserver := http.FileServer(http.FS(ProtectedFS{fs: os.DirFS(dir)}))
 
-	return func(w http.ResponseWriter, r *http.Request) error {
-		fserver.ServeHTTP(w, r)
+	return func(ctx *Context) error {
+		if stripPrefix != "" {
+			ctx.req.URL.Path = strings.TrimPrefix(ctx.req.URL.Path, stripPrefix)
+			ctx.req.URL.RawPath = strings.TrimPrefix(ctx.req.URL.RawPath, stripPrefix)
+		}
+		fserver.ServeHTTP(ctx.w, ctx.req)
 		return nil
 	}
 }

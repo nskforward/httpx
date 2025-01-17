@@ -2,44 +2,91 @@ package test
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/nskforward/httpx"
-	"github.com/nskforward/httpx/response"
-	"github.com/nskforward/httpx/types"
 )
 
-func TestMiddleware(t *testing.T) {
-	h := func(w http.ResponseWriter, r *http.Request) error {
-		fmt.Println("--- main handler")
-		return response.Text(w, 200, "success")
-	}
-	mw := func(msg string, after bool) types.Middleware {
-		return func(next types.Handler) types.Handler {
-			return func(w http.ResponseWriter, r *http.Request) error {
-				if !after {
-					fmt.Println("--- middleware:", msg)
-				}
-				err := next(w, r)
-				if after {
-					fmt.Println("--- middleware:", msg)
-				}
+func TestMiddlewareBefore(t *testing.T) {
+	r := httpx.NewRouter(Logger())
+
+	r.Use(
+		func(next httpx.Handler) httpx.Handler {
+			return func(ctx *httpx.Context) error {
+				ctx.Logger().Info("mw-1b")
+				err := next(ctx)
+				ctx.Logger().Info("mw-1a")
 				return err
 			}
-		}
-	}
+		},
+		func(next httpx.Handler) httpx.Handler {
+			return func(ctx *httpx.Context) error {
+				ctx.Logger().Info("mw-2b")
+				err := next(ctx)
+				ctx.Logger().Info("mw-2a")
+				return err
+			}
+		},
+	)
 
-	var r httpx.Router
+	r.Use(
+		func(next httpx.Handler) httpx.Handler {
+			return func(ctx *httpx.Context) error {
+				ctx.Logger().Info("mw-3b")
+				err := next(ctx)
+				ctx.Logger().Info("mw-3a")
+				return err
+			}
+		},
+		func(next httpx.Handler) httpx.Handler {
+			return func(ctx *httpx.Context) error {
+				ctx.Logger().Info("mw-4b")
+				err := next(ctx)
+				ctx.Logger().Info("mw-4a")
+				return err
+			}
+		},
+	)
 
-	r.Use(mw("1", false), mw("2", false))
-	r.Use(mw("3", false))
+	r.GET("/",
+		func(ctx *httpx.Context) error {
+			ctx.Logger().Info("handler-1")
+			return ctx.RespondText(200, "answer from server")
+		},
+		func(next httpx.Handler) httpx.Handler {
+			return func(ctx *httpx.Context) error {
+				ctx.Logger().Info("mw-5b")
+				err := next(ctx)
+				ctx.Logger().Info("mw-5a")
+				return err
+			}
+		},
+		func(next httpx.Handler) httpx.Handler {
+			return func(ctx *httpx.Context) error {
+				ctx.Logger().Info("mw-6b")
+				err := next(ctx)
+				ctx.Logger().Info("mw-6a")
+				return err
+			}
+		},
+	)
 
-	r.Route("/api/v1/", h, mw("4", false), mw("5", false))
-
-	s := httptest.NewServer(&r)
+	s := httptest.NewServer(r)
 	defer s.Close()
 
-	DoRequest(s, "GET", "/api/v1/user/123", "", nil, true, false)
+	res, err := http.Get(s.URL + "/test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	answer, err := io.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(string(answer))
 }
