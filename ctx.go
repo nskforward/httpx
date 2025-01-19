@@ -3,6 +3,7 @@ package httpx
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -172,4 +173,23 @@ func (ctx *Context) Stream(step func(send func(name, value string), flush func()
 			}
 		}
 	}
+}
+
+func (ctx *Context) AccessDenied() error {
+	return ctx.RespondText(http.StatusForbidden, "access denied")
+}
+
+func (ctx *Context) CacheDisable() {
+	ctx.SetResponseHeader("Cache-Control", "no-store")
+}
+
+func (ctx *Context) CacheEnable(public bool, maxAge time.Duration) {
+	ctx.SetResponseHeader("Cache-Control", fmt.Sprintf("%s, max-age=%.0f", isPublic(public), maxAge.Seconds()))
+}
+
+func isPublic(yes bool) string {
+	if yes {
+		return "public"
+	}
+	return "private"
 }
