@@ -189,6 +189,7 @@ func (ctx *Context) Unauthorized() error {
 
 func (ctx *Context) BadRequest(msg string, args ...any) error {
 	args = append([]any{msg}, args...)
+	args = append(args, fmt.Sprintf("(#%s)", ctx.TraceID()))
 	return ctx.RespondText(http.StatusBadRequest, fmt.Sprint(args...))
 }
 
