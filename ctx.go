@@ -49,6 +49,10 @@ func (ctx *Context) PathParam(name string) string {
 	return ctx.req.PathValue(name)
 }
 
+func (ctx *Context) FormParam(name string) string {
+	return ctx.req.FormValue(name)
+}
+
 func (ctx *Context) TraceID() string {
 	return ctx.traceID
 }
