@@ -183,6 +183,10 @@ func (ctx *Context) AccessDenied() error {
 	return ctx.RespondText(http.StatusForbidden, "access denied")
 }
 
+func (ctx *Context) Unauthorized() error {
+	return ctx.RespondText(http.StatusUnauthorized, "unauthorized")
+}
+
 func (ctx *Context) BadRequest(msg string, args ...any) error {
 	args = append([]any{msg}, args...)
 	return ctx.RespondText(http.StatusBadRequest, fmt.Sprint(args...))
