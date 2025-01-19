@@ -183,6 +183,10 @@ func (ctx *Context) AccessDenied() error {
 	return ctx.RespondText(http.StatusForbidden, "access denied")
 }
 
+func (ctx *Context) BadRequest(msg string) error {
+	return ctx.RespondText(http.StatusBadRequest, msg)
+}
+
 func (ctx *Context) CacheDisable() {
 	ctx.SetResponseHeader("Cache-Control", "no-store")
 }
