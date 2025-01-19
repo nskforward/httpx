@@ -17,7 +17,7 @@ type CorsOptions struct {
 	AllowCredentials bool
 	MaxAge           time.Duration
 	allowAnyOrigin   bool
-	maxAgeSting      string
+	maxAgeString     string
 }
 
 func CorsMiddleware(options CorsOptions) Middleware {
@@ -42,9 +42,9 @@ func CorsMiddleware(options CorsOptions) Middleware {
 		}
 	}
 
-	options.maxAgeSting = "3600"
+	options.maxAgeString = "3600"
 	if options.MaxAge > 0 {
-		options.maxAgeSting = strconv.FormatFloat(options.MaxAge.Seconds(), 'f', 0, 64)
+		options.maxAgeString = strconv.FormatFloat(options.MaxAge.Seconds(), 'f', 0, 64)
 	}
 
 	if len(options.AllowOrigins) == 0 || options.AllowOrigins[0] == "*" {
@@ -58,28 +58,22 @@ func CorsMiddleware(options CorsOptions) Middleware {
 	return func(next Handler) Handler {
 		return func(ctx *Context) error {
 
+			if ctx.Method() != http.MethodOptions {
+				return next(ctx)
+			}
+
 			origin := ctx.GetRequestHeader("Origin")
-
 			if origin == "" {
-				ctx.SetResponseHeader("Vary", "Origin")
 				return next(ctx)
 			}
 
-			if ctx.Method() == http.MethodOptions && ctx.GetRequestHeader("Access-Control-Request-Method") == "" {
-				ctx.SetResponseHeader("Vary", "Origin")
-				return next(ctx)
-			}
+			ctx.SetResponseHeader("Vary", "Origin")
 
 			err := corsSendHeaders(ctx, options, origin)
 			if err != nil {
 				return err
 			}
-
-			if ctx.Method() == http.MethodOptions {
-				return ctx.RespondNoContent()
-			}
-
-			return next(ctx)
+			return ctx.RespondNoContent()
 		}
 	}
 }
@@ -117,6 +111,6 @@ func corsSendHeaders(ctx *Context, options CorsOptions, origin string) error {
 		ctx.SetResponseHeader("Access-Control-Expose-Headers", "*")
 	}
 
-	ctx.SetResponseHeader("Access-Control-Max-Age", options.maxAgeSting)
+	ctx.SetResponseHeader("Access-Control-Max-Age", options.maxAgeString)
 	return nil
 }
