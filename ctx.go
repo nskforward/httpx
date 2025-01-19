@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type Context struct {
 	traceID     string
 	headersSent bool
 	startTime   time.Time
+	realIP      string
 }
 
 func NewContext(parent *slog.Logger, pattern string, w http.ResponseWriter, req *http.Request) *Context {
@@ -34,6 +36,7 @@ func NewContext(parent *slog.Logger, pattern string, w http.ResponseWriter, req 
 		pattern:   pattern,
 		traceID:   traceID,
 		startTime: time.Now(),
+		realIP:    detectRealIP(req),
 	}
 }
 
@@ -66,8 +69,12 @@ func (ctx *Context) UserAgent() string {
 }
 
 func (ctx *Context) UserIP() string {
-	ip, _, _ := net.SplitHostPort(ctx.req.RemoteAddr)
-	return ip
+	addr, _, _ := net.SplitHostPort(ctx.req.RemoteAddr)
+	return addr
+}
+
+func (ctx *Context) RealIP() string {
+	return ctx.realIP
 }
 
 func (ctx *Context) Path() string {
@@ -206,4 +213,20 @@ func isPublic(yes bool) string {
 		return "public"
 	}
 	return "private"
+}
+
+func detectRealIP(r *http.Request) string {
+	addr := r.Header.Get("X-Forwarded-For")
+	if addr != "" {
+		if strings.Contains(addr, ",") {
+			addr = strings.TrimSpace(strings.Split(addr, ",")[0])
+		}
+		return addr
+	}
+	addr = r.Header.Get("X-Real-IP")
+	if addr != "" {
+		return addr
+	}
+	addr, _, _ = net.SplitHostPort(r.RemoteAddr)
+	return addr
 }
