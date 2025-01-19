@@ -69,11 +69,6 @@ func (ctx *Context) UserAgent() string {
 }
 
 func (ctx *Context) UserIP() string {
-	addr, _, _ := net.SplitHostPort(ctx.req.RemoteAddr)
-	return addr
-}
-
-func (ctx *Context) RealIP() string {
 	return ctx.realIP
 }
 
