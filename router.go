@@ -20,10 +20,11 @@ func NewRouter(logger *slog.Logger, opts ...SetOpt) *Router {
 	}
 
 	r := &Router{
-		serverMux:     http.NewServeMux(),
-		mws:           make([]Middleware, 0, 16),
-		slashRedirect: true,
-		logger:        logger,
+		serverMux:        http.NewServeMux(),
+		mws:              make([]Middleware, 0, 16),
+		slashRedirect:    true,
+		logger:           logger,
+		afterResponseLog: DefaultLoggingFunc,
 	}
 	for _, opt := range opts {
 		opt(r)
