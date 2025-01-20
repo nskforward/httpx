@@ -19,20 +19,20 @@ func DeclareHandler(r *Router, method, pattern string, handler Handler, middlewa
 
 	if method == "" {
 		if strings.HasPrefix(pattern, "/") {
-			r.serverMux.HandleFunc(pattern, toStdHandler(r, pattern, handler, mws))
+			r.serverMux.HandleFunc(pattern, wrapHandler(r, handler, mws))
 			return
 		}
 		panic(fmt.Errorf("router: handler declaration: invalid pattern for method ANY: %s", pattern))
 	}
 
 	if strings.HasPrefix(pattern, fmt.Sprintf("%s ", method)) {
-		r.serverMux.HandleFunc(pattern, toStdHandler(r, pattern, handler, mws))
+		r.serverMux.HandleFunc(pattern, wrapHandler(r, handler, mws))
 		return
 	}
 
 	if strings.HasPrefix(pattern, "/") {
 		pattern = fmt.Sprintf("%s %s", method, pattern)
-		r.serverMux.HandleFunc(pattern, toStdHandler(r, pattern, handler, mws))
+		r.serverMux.HandleFunc(pattern, wrapHandler(r, handler, mws))
 		return
 	}
 

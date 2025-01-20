@@ -16,24 +16,21 @@ type Context struct {
 	logger      *slog.Logger
 	w           *ResponseWrapper
 	req         *http.Request
-	pattern     string
 	traceID     string
 	headersSent bool
 	startTime   time.Time
 	realIP      string
 }
 
-func NewContext(parent *slog.Logger, pattern string, w http.ResponseWriter, req *http.Request) *Context {
+func NewContext(parent *slog.Logger, w http.ResponseWriter, req *http.Request) *Context {
 	traceID := NewTraceID(req)
 
 	return &Context{
 		logger: parent.With(
 			slog.String("trace_id", traceID),
-			slog.String("pattern", pattern),
 		),
 		w:         NewResponseWrapper(w),
 		req:       req,
-		pattern:   pattern,
 		traceID:   traceID,
 		startTime: time.Now(),
 		realIP:    detectRealIP(req),

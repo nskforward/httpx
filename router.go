@@ -75,5 +75,14 @@ func (r *Router) HEAD(pattern string, handler Handler, middlewares ...Middleware
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.serverMux.ServeHTTP(w, req)
+	stdhandler, pattern := r.serverMux.Handler(req)
+	if pattern != "" {
+		stdhandler.ServeHTTP(w, req)
+		return
+	}
+	handler := func(ctx *Context) error {
+		stdhandler.ServeHTTP(ctx.w, ctx.req)
+		return nil
+	}
+	executeFinalHandler(r, handler, r.mws, w, req)
 }
