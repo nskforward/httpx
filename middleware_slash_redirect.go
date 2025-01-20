@@ -7,7 +7,7 @@ import (
 
 func SlashRedirectMiddleware(next Handler) Handler {
 	return func(ctx *Context) error {
-		if !strings.HasSuffix(ctx.Path(), "/") {
+		if ctx.Path() == "/" || !strings.HasSuffix(ctx.Path(), "/") {
 			return next(ctx)
 		}
 
