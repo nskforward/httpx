@@ -45,6 +45,10 @@ func (ctx *Context) Request() *http.Request {
 	return ctx.req
 }
 
+func (ctx *Context) ResponseWriter() http.ResponseWriter {
+	return ctx.w
+}
+
 func (ctx *Context) PathParam(name string) string {
 	return ctx.req.PathValue(name)
 }
