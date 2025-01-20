@@ -140,6 +140,10 @@ func (ctx *Context) Redirect(statusCode int, url string) error {
 	return nil
 }
 
+func (ctx *Context) RespondRestResponse(success bool, description string, payload any) error {
+	return ctx.RespondJSON(200, RestResponse{Success: success, Description: description, Payload: payload})
+}
+
 // Stream returns TRUE if client gone, FALSE if server breaks stream.
 func (ctx *Context) Stream(step func(send func(name, value string), flush func()) bool) bool {
 	ctx.SetResponseHeader("Content-Type", "text/event-stream")
