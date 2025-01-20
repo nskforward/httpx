@@ -58,22 +58,31 @@ func CorsMiddleware(options CorsOptions) Middleware {
 	return func(next Handler) Handler {
 		return func(ctx *Context) error {
 
-			if ctx.Method() != http.MethodOptions {
-				return next(ctx)
+			if ctx.Method() == http.MethodOptions {
+				origin := ctx.GetRequestHeader("Origin")
+				if origin == "" {
+					return next(ctx)
+				}
+				ctx.SetResponseHeader("Vary", "Origin")
+				err := corsSendHeaders(ctx, options, origin)
+				if err != nil {
+					return err
+				}
+				return ctx.RespondNoContent()
 			}
 
-			origin := ctx.GetRequestHeader("Origin")
-			if origin == "" {
-				return next(ctx)
+			if ctx.GetRequestHeader("Sec-Fetch-Mode") == "cors" {
+				origin := ctx.GetRequestHeader("Origin")
+				if origin == "" {
+					return next(ctx)
+				}
+				err := corsSendHeaders(ctx, options, origin)
+				if err != nil {
+					return err
+				}
 			}
 
-			ctx.SetResponseHeader("Vary", "Origin")
-
-			err := corsSendHeaders(ctx, options, origin)
-			if err != nil {
-				return err
-			}
-			return ctx.RespondNoContent()
+			return next(ctx)
 		}
 	}
 }
