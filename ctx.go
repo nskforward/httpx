@@ -115,6 +115,9 @@ func (ctx *Ctx) Redirect(code int, url string) error {
 }
 
 func (ctx *Ctx) BadRequest(err error) error {
+	if IsHTTPError(err) {
+		return err
+	}
 	return NewError(http.StatusBadRequest, err.Error())
 }
 
