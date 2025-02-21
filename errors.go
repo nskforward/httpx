@@ -11,11 +11,12 @@ type Error struct {
 }
 
 var (
-	ErrNotFound        = Error{code: http.StatusNotFound, text: http.StatusText(http.StatusNotFound)}
-	ErrInternalServer  = Error{code: http.StatusInternalServerError, text: http.StatusText(http.StatusInternalServerError)}
-	ErrUnauthorized    = Error{code: http.StatusUnauthorized, text: http.StatusText(http.StatusUnauthorized)}
-	ErrForbidden       = Error{code: http.StatusForbidden, text: http.StatusText(http.StatusForbidden)}
-	ErrTooManyRequests = Error{code: http.StatusTooManyRequests, text: http.StatusText(http.StatusTooManyRequests)}
+	ErrNotFound             = Error{code: http.StatusNotFound, text: http.StatusText(http.StatusNotFound)}
+	ErrInternalServer       = Error{code: http.StatusInternalServerError, text: http.StatusText(http.StatusInternalServerError)}
+	ErrUnauthorized         = Error{code: http.StatusUnauthorized, text: http.StatusText(http.StatusUnauthorized)}
+	ErrForbidden            = Error{code: http.StatusForbidden, text: http.StatusText(http.StatusForbidden)}
+	ErrTooManyRequests      = Error{code: http.StatusTooManyRequests, text: http.StatusText(http.StatusTooManyRequests)}
+	ErrUnsupportedMediaType = Error{code: http.StatusUnsupportedMediaType, text: http.StatusText(http.StatusUnsupportedMediaType)}
 )
 
 func NewError(code int, text string) Error {
@@ -23,6 +24,13 @@ func NewError(code int, text string) Error {
 		code: code,
 		text: text,
 	}
+}
+
+func IsHTTPError(err error) bool {
+	if _, ok := err.(Error); ok {
+		return true
+	}
+	return false
 }
 
 func (e Error) Error() string {
