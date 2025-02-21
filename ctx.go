@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -32,6 +33,10 @@ func newCtx(route *Route, w http.ResponseWriter, r *http.Request) *Ctx {
 
 func (ctx *Ctx) TraceID() string {
 	return ctx.traceID
+}
+
+func (ctx *Ctx) Context() context.Context {
+	return ctx.Request().Context()
 }
 
 func (ctx *Ctx) Path() string {
