@@ -25,8 +25,6 @@ type App struct {
 	connState         func(net.Conn, http.ConnState)
 }
 
-type SetOpt func(*App)
-
 func New(opts ...SetOpt) *App {
 	s := &App{
 		addr:      ":80",
