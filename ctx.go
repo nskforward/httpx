@@ -31,6 +31,10 @@ func newCtx(route *Route, w http.ResponseWriter, r *http.Request) *Ctx {
 	}
 }
 
+func (ctx *Ctx) InputJSON(dst any) error {
+	return json.NewDecoder(ctx.Request().Body).Decode(dst)
+}
+
 func (ctx *Ctx) TraceID() string {
 	return ctx.traceID
 }
