@@ -3,37 +3,66 @@ package test
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/nskforward/httpx"
 )
 
 func TestHandler(t *testing.T) {
-	r := httpx.NewRouter(Logger())
+	app := httpx.NewServer()
 
-	r.GET("/test", func(ctx *httpx.Context) error {
-		return ctx.RespondText(200, "get!")
-	})
+	app.Use(buildMiddleware("app-mw-1"), buildMiddleware("app-mw-2"))
 
-	r.DELETE("/test", func(ctx *httpx.Context) error {
-		return ctx.RespondText(200, "delete!")
-	})
+	app.Route(httpx.POST, "/pass", func(c *httpx.Ctx) error {
+		return c.Text(200, "pass")
+	}, buildMiddleware("route-mw-1"), buildMiddleware("route-mw-2"))
 
-	s := httptest.NewServer(r)
-	defer s.Close()
+	ts := httptest.NewServer(app.Handler())
+	defer ts.Close()
 
-	res, err := http.Get(s.URL + "/test")
+	client := ts.Client()
+
+	res, err := client.Post(ts.URL+"/pass", "application/json", strings.NewReader("{}"))
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	answer, err := io.ReadAll(res.Body)
+	greeting, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Printf("%s: %s\n", res.Status, greeting)
 
-	fmt.Println(string(answer))
+	res, err = client.Get(ts.URL + "/404")
+	if err != nil {
+		t.Fatal(err)
+	}
+	greeting, err = io.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("%s: %s\n", res.Status, greeting)
+
+	res, err = client.Get(ts.URL + "/pass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	greeting, err = io.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("%s: %s\n", res.Status, greeting)
+}
+
+func buildMiddleware(text string) httpx.Handler {
+	return func(c *httpx.Ctx) error {
+		fmt.Println("b:", text)
+		err := c.Next()
+		fmt.Println("a:", text)
+		return err
+	}
 }

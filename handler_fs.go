@@ -9,21 +9,6 @@ import (
 	"strings"
 )
 
-func ServeFile(filePath string) Handler {
-	fi, err := os.Stat(filePath)
-	if err != nil {
-		panic(fmt.Errorf("cannot find the file: %w", err))
-	}
-	if fi.IsDir() {
-		panic(fmt.Errorf("file cannot be a dir: %s", filePath))
-	}
-
-	return func(ctx *Context) error {
-		http.ServeFile(ctx.w, ctx.req, filePath)
-		return nil
-	}
-}
-
 /*
 	 	ServeDir servers dir files dynamically based on request URL path:
 
@@ -42,7 +27,7 @@ func ServeFile(filePath string) Handler {
 		GET	/static/1.html  -->  200 OK  /data/static/1.html
 		GET	/static/2.html  -->  200 OK  /data/static/2.html
 */
-func ServeDir(dir, stripPrefix string) Handler {
+func ServeFS(dir, stripPrefix string) Handler {
 	fi, err := os.Stat(dir)
 	if err != nil {
 		panic(dir)
@@ -53,12 +38,12 @@ func ServeDir(dir, stripPrefix string) Handler {
 
 	fserver := http.FileServer(http.FS(ProtectedFS{fs: os.DirFS(dir)}))
 
-	return func(ctx *Context) error {
+	return func(ctx *Ctx) error {
 		if stripPrefix != "" {
-			ctx.req.URL.Path = strings.TrimPrefix(ctx.req.URL.Path, stripPrefix)
-			ctx.req.URL.RawPath = strings.TrimPrefix(ctx.req.URL.RawPath, stripPrefix)
+			ctx.Request().URL.Path = strings.TrimPrefix(ctx.Request().URL.Path, stripPrefix)
+			ctx.Request().URL.RawPath = strings.TrimPrefix(ctx.Request().URL.RawPath, stripPrefix)
 		}
-		fserver.ServeHTTP(ctx.w, ctx.req)
+		fserver.ServeHTTP(ctx.w, ctx.r)
 		return nil
 	}
 }

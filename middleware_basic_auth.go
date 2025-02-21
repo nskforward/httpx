@@ -1,14 +1,12 @@
 package httpx
 
-func BasicAuthMiddleware(users map[string]string) Middleware {
-	return func(next Handler) Handler {
-		return func(ctx *Context) error {
-			user, pass, ok := ctx.Request().BasicAuth()
-			if !ok || users[user] != pass {
-				ctx.SetResponseHeader("WWW-Authenticate", `Basic realm="please provide app credentials"`)
-				return ctx.Unauthorized()
-			}
-			return next(ctx)
+func BasicAuth(usersWithPass map[string]string) Handler {
+	return func(ctx *Ctx) error {
+		user, pass, ok := ctx.Request().BasicAuth()
+		if !ok || usersWithPass[user] != pass {
+			ctx.SetHeader("WWW-Authenticate", `Basic realm="please provide credentials"`)
+			return ErrUnauthorized
 		}
+		return ctx.Next()
 	}
 }

@@ -1,89 +1,61 @@
 package httpx
 
 import (
-	"log/slog"
 	"net/http"
+	"strings"
 )
 
-type Router struct {
-	serverMux        *http.ServeMux
-	logger           *slog.Logger
-	mws              []Middleware
-	beforeRequestLog LogFunc
-	afterResponseLog LogFunc
-	slashRedirect    bool
+type router struct {
+	mux            *http.ServeMux
+	server         *Server
+	appMiddlewares []Handler
 }
 
-func NewRouter(logger *slog.Logger, opts ...SetOpt) *Router {
-	if logger == nil {
-		panic("logger cannot be nil")
+func newRouter(s *Server) *router {
+	return &router{
+		mux:    http.NewServeMux(),
+		server: s,
 	}
-
-	r := &Router{
-		serverMux:        http.NewServeMux(),
-		mws:              make([]Middleware, 0, 16),
-		slashRedirect:    true,
-		logger:           logger,
-		afterResponseLog: DefaultLoggingFunc,
-	}
-	for _, opt := range opts {
-		opt(r)
-	}
-	if r.slashRedirect {
-		r.Use(SlashRedirectMiddleware)
-	}
-	return r
 }
 
-func (r *Router) Use(middleware ...Middleware) {
-	r.mws = append(r.mws, middleware...)
-}
-
-func (r *Router) Group(patternPrefix string) *Group {
-	return NewGroup(r, patternPrefix)
-}
-
-func (r *Router) ANY(pattern string, handler Handler, middlewares ...Middleware) {
-	DeclareHandler(r, "", pattern, handler, middlewares...)
-}
-
-func (r *Router) GET(pattern string, handler Handler, middlewares ...Middleware) {
-	DeclareHandler(r, "GET", pattern, handler, middlewares...)
-}
-
-func (r *Router) POST(pattern string, handler Handler, middlewares ...Middleware) {
-	DeclareHandler(r, "POST", pattern, handler, middlewares...)
-}
-
-func (r *Router) PUT(pattern string, handler Handler, middlewares ...Middleware) {
-	DeclareHandler(r, "PUT", pattern, handler, middlewares...)
-}
-
-func (r *Router) DELETE(pattern string, handler Handler, middlewares ...Middleware) {
-	DeclareHandler(r, "DELETE", pattern, handler, middlewares...)
-}
-
-func (r *Router) PATCH(pattern string, handler Handler, middlewares ...Middleware) {
-	DeclareHandler(r, "PATCH", pattern, handler, middlewares...)
-}
-
-func (r *Router) OPTIONS(pattern string, handler Handler, middlewares ...Middleware) {
-	DeclareHandler(r, "OPTIONS", pattern, handler, middlewares...)
-}
-
-func (r *Router) HEAD(pattern string, handler Handler, middlewares ...Middleware) {
-	DeclareHandler(r, "HEAD", pattern, handler, middlewares...)
-}
-
-func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	stdhandler, pattern := r.serverMux.Handler(req)
-	if pattern != "" {
-		stdhandler.ServeHTTP(w, req)
-		return
-	}
-	handler := func(ctx *Context) error {
-		stdhandler.ServeHTTP(ctx.w, ctx.req)
+func (r *router) wrapStdHandler(h http.Handler) http.Handler {
+	finalHandler := func(c *Ctx) error {
+		h.ServeHTTP(c.w, c.r)
 		return nil
 	}
-	executeFinalHandler(r, handler, r.mws, w, req)
+	return newRoute(r, "", append(r.appMiddlewares, finalHandler))
+}
+
+func (r *router) use(middlewares []Handler) {
+	if r.appMiddlewares == nil {
+		r.appMiddlewares = middlewares
+	} else {
+		r.appMiddlewares = append(r.appMiddlewares, middlewares...)
+	}
+}
+
+func (r *router) Route(method Method, pattern string, handler Handler, middlewares []Handler) *Route {
+	if strings.Contains(pattern, " ") {
+		panic("white spaces not allowed in http router patterns")
+	}
+	handlers := append(r.appMiddlewares, middlewares...)
+	route := newRoute(r, pattern, append(handlers, handler))
+	route.registry(method)
+	return route
+}
+
+func (r *router) Group(pattern string, middlewares []Handler) *Route {
+	return newRoute(r, pattern, append(r.appMiddlewares, middlewares...))
+}
+
+func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h, pattern := r.mux.Handler(req)
+
+	if pattern != "" {
+		h.ServeHTTP(w, req)
+		return
+	}
+
+	h = r.wrapStdHandler(h)
+	h.ServeHTTP(w, req)
 }

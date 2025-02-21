@@ -1,232 +1,140 @@
 package httpx
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
-	"strings"
-	"time"
 )
 
-type Context struct {
-	logger      *slog.Logger
-	w           *ResponseWrapper
-	req         *http.Request
-	traceID     string
-	headersSent bool
-	startTime   time.Time
-	realIP      string
+type Ctx struct {
+	r            *http.Request
+	w            *responseWrapper
+	route        *Route
+	indexHandler int
+	clientAddr   string
+	traceID      string
+	logger       *slog.Logger
 }
 
-func NewContext(parent *slog.Logger, w http.ResponseWriter, req *http.Request) *Context {
-	traceID := NewTraceID(req)
-
-	return &Context{
-		logger: parent.With(
-			slog.String("trace_id", traceID),
-		),
-		w:         NewResponseWrapper(w),
-		req:       req,
-		traceID:   traceID,
-		startTime: time.Now(),
-		realIP:    detectRealIP(req),
+func newCtx(route *Route, w http.ResponseWriter, r *http.Request) *Ctx {
+	traceID := NewTraceID(r)
+	return &Ctx{
+		r:            r,
+		w:            newResponseWrapper(w),
+		route:        route,
+		indexHandler: -1,
+		clientAddr:   r.RemoteAddr,
+		traceID:      traceID,
+		logger:       route.router.server.logger.With(slog.String("trace_id", traceID)),
 	}
 }
 
-func (ctx *Context) ParseRequestJSON(dest any) error {
-	return json.NewDecoder(ctx.req.Body).Decode(dest)
-}
-
-func (ctx *Context) Request() *http.Request {
-	return ctx.req
-}
-
-func (ctx *Context) ResponseWriter() http.ResponseWriter {
-	return ctx.w
-}
-
-func (ctx *Context) PathParam(name string) string {
-	return ctx.req.PathValue(name)
-}
-
-func (ctx *Context) FormParam(name string) string {
-	return ctx.req.FormValue(name)
-}
-
-func (ctx *Context) TraceID() string {
+func (ctx *Ctx) TraceID() string {
 	return ctx.traceID
 }
 
-func (ctx *Context) Method() string {
-	return ctx.req.Method
+func (ctx *Ctx) Path() string {
+	return ctx.r.URL.Path
 }
 
-func (ctx *Context) UserAgent() string {
-	return ctx.req.UserAgent()
+func (ctx *Ctx) Origin() string {
+	return ctx.r.Header.Get("Origin")
 }
 
-func (ctx *Context) UserIP() string {
-	return ctx.realIP
+func (ctx *Ctx) Request() *http.Request {
+	return ctx.r
 }
 
-func (ctx *Context) Path() string {
-	return ctx.req.URL.Path
-}
-
-func (ctx *Context) StatusCode() int {
-	return ctx.w.status
-}
-
-func (ctx *Context) ClientContext() context.Context {
-	return ctx.req.Context()
-}
-
-func (ctx *Context) StartTime() time.Time {
-	return ctx.startTime
-}
-
-func (ctx *Context) Logger() *slog.Logger {
+func (ctx *Ctx) Logger() *slog.Logger {
 	return ctx.logger
 }
 
-func (ctx *Context) ResponseSize() int64 {
-	return ctx.w.size
+func (ctx *Ctx) Next() error {
+	nextHandler := ctx.nextHandler()
+	if nextHandler != nil {
+		return nextHandler(ctx)
+	}
+	return ErrNotFound
 }
 
-func (ctx *Context) HeadersSent() bool {
-	return ctx.headersSent
+func (ctx *Ctx) Sent() bool {
+	return ctx.w.Status() > 0
 }
 
-func (ctx *Context) sendStatusCode(statusCode int) {
-	ctx.headersSent = true
-	ctx.w.WriteHeader(statusCode)
+func (ctx *Ctx) WriteError(err error) {
+	if ctx.Sent() {
+		ctx.Logger().Warn("response headers already sent", "error", err)
+		return
+	}
+
+	if servErr, ok := err.(Error); ok {
+		servErr.Write(ctx)
+	} else {
+		ctx.Logger().Error(err.Error())
+		ErrInternalServer.Write(ctx)
+	}
 }
 
-func (ctx *Context) GetRequestHeader(name string) string {
-	return ctx.req.Header.Get(name)
+func (ctx *Ctx) nextHandler() Handler {
+	ctx.indexHandler++
+	if ctx.indexHandler < len(ctx.route.handlers) {
+		return ctx.route.handlers[ctx.indexHandler]
+	}
+	return nil
 }
 
-func (ctx *Context) SetResponseHeader(name, value string) {
-	if ctx.headersSent {
-		ctx.Logger().Warn("try to set an http response header when status code already sent to client", "name", name, "value", value)
+func (ctx *Ctx) ContentType(contentType string) {
+	ctx.SetHeader("Content-Type", contentType)
+}
+
+func (ctx *Ctx) SetHeader(name, value string) {
+	if ctx.Sent() {
+		ctx.Logger().Warn("response headers already sent", "header", name)
 		return
 	}
 	ctx.w.Header().Set(name, value)
 }
 
-func (ctx *Context) RespondNoContent() error {
-	ctx.sendStatusCode(http.StatusNoContent)
+func (ctx *Ctx) Redirect(code int, url string) error {
+	http.Redirect(ctx.w, ctx.r, url, code)
 	return nil
 }
 
-func (ctx *Context) RespondJSON(statusCode int, obj any) error {
-	ctx.SetResponseHeader("Content-Type", "application/json; charset=utf-8")
-	ctx.sendStatusCode(statusCode)
-	return json.NewEncoder(ctx.w).Encode(obj)
+func (ctx *Ctx) BadRequest(err error) error {
+	return NewError(http.StatusBadRequest, err.Error())
 }
 
-func (ctx *Context) RespondText(statusCode int, msg string) error {
-	ctx.sendStatusCode(statusCode)
-	_, err := io.WriteString(ctx.w, msg)
+func (ctx *Ctx) NoContent() error {
+	ctx.w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
+func (ctx *Ctx) Bytes(code int, data []byte) error {
+	ctx.w.WriteHeader(code)
+	ctx.w.Write(data)
+	return nil
+}
+
+func (ctx *Ctx) Copy(code int, r io.Reader) error {
+	ctx.w.WriteHeader(code)
+	_, err := io.Copy(ctx.w, r)
 	return err
 }
 
-func (ctx *Context) Redirect(statusCode int, url string) error {
-	http.Redirect(ctx.w, ctx.req, url, statusCode)
+func (ctx *Ctx) Text(code int, text string) error {
+	ctx.w.WriteHeader(code)
+	io.WriteString(ctx.w, text)
 	return nil
 }
 
-func (ctx *Context) RespondRestResponse(success bool, description string, payload any) error {
-	return ctx.RespondJSON(200, RestResponse{Success: success, Description: description, Payload: payload})
+func (ctx *Ctx) JSON(code int, entity any) error {
+	ctx.ContentType("application/json; charset=utf-8")
+	ctx.w.WriteHeader(code)
+	return json.NewEncoder(ctx.w).Encode(entity)
 }
 
-// Stream returns TRUE if client gone, FALSE if server breaks stream.
-func (ctx *Context) Stream(step func(send func(name, value string), flush func()) bool) bool {
-	ctx.SetResponseHeader("Content-Type", "text/event-stream")
-	ctx.SetResponseHeader("Cache-Control", "no-store")
-
-	gone := ctx.req.Context().Done()
-	writer := ctx.w
-	flusher := ctx.w.Flusher()
-
-	send := func(name, value string) {
-		writer.Write([]byte(name))
-		writer.Write([]byte(": "))
-		writer.Write([]byte(value))
-		writer.Write([]byte{'\n'})
-	}
-
-	flush := func() {
-		writer.Write([]byte{'\n'})
-		flusher.Flush()
-	}
-
-	ticker := time.NewTicker(15 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-gone:
-			return true
-
-		case <-ticker.C:
-			writer.Write([]byte(":ping\n"))
-			flusher.Flush()
-
-		default:
-			keepOpen := step(send, flush)
-			if !keepOpen {
-				return false
-			}
-		}
-	}
-}
-
-func (ctx *Context) AccessDenied() error {
-	return ctx.RespondText(http.StatusForbidden, "access denied")
-}
-
-func (ctx *Context) Unauthorized() error {
-	return ctx.RespondText(http.StatusUnauthorized, "unauthorized")
-}
-
-func (ctx *Context) BadRequest(msg string, args ...any) error {
-	args = append([]any{msg}, args...)
-	args = append(args, fmt.Sprintf("(#%s)", ctx.TraceID()))
-	return ctx.RespondText(http.StatusBadRequest, fmt.Sprint(args...))
-}
-
-func (ctx *Context) CacheDisable() {
-	ctx.SetResponseHeader("Cache-Control", "no-store")
-}
-
-func (ctx *Context) CacheEnable(public bool, maxAge time.Duration) {
-	ctx.SetResponseHeader("Cache-Control", fmt.Sprintf("%s, max-age=%.0f", isPublic(public), maxAge.Seconds()))
-}
-
-func isPublic(yes bool) string {
-	if yes {
-		return "public"
-	}
-	return "private"
-}
-
-func detectRealIP(r *http.Request) string {
-	addr := r.Header.Get("X-Forwarded-For")
-	if addr != "" {
-		if strings.Contains(addr, ",") {
-			addr = strings.TrimSpace(strings.Split(addr, ",")[0])
-		}
-		return addr
-	}
-	addr = r.Header.Get("X-Real-IP")
-	if addr != "" {
-		return addr
-	}
-	addr, _, _ = net.SplitHostPort(r.RemoteAddr)
-	return addr
+func (ctx *Ctx) ServeFile(file string) error {
+	http.ServeFile(ctx.w, ctx.r, file)
+	return nil
 }
