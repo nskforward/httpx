@@ -91,3 +91,27 @@ func (s *Server) Route(method Method, pattern string, handler Handler, middlewar
 func (s *Server) Group(pattern string, middlewares ...Handler) *Route {
 	return s.router.Group(pattern, middlewares)
 }
+
+func (s *Server) GET(pattern string, handler Handler, middlewares ...Handler) *Route {
+	return s.router.Route(GET, pattern, handler, middlewares)
+}
+
+func (s *Server) POST(pattern string, handler Handler, middlewares ...Handler) *Route {
+	return s.router.Route(POST, pattern, handler, middlewares)
+}
+
+func (s *Server) PUT(pattern string, handler Handler, middlewares ...Handler) *Route {
+	return s.router.Route(PUT, pattern, handler, middlewares)
+}
+
+func (s *Server) DELETE(pattern string, handler Handler, middlewares ...Handler) *Route {
+	return s.router.Route(DELETE, pattern, handler, middlewares)
+}
+
+func (s *Server) PATCH(pattern string, handler Handler, middlewares ...Handler) *Route {
+	return s.router.Route(PATCH, pattern, handler, middlewares)
+}
+
+func (s *Server) OPTIONS(pattern string, handler Handler, middlewares ...Handler) *Route {
+	return s.router.Route(OPTIONS, pattern, handler, middlewares)
+}
