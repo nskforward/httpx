@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type Server struct {
+type App struct {
 	addr              string
 	logger            *slog.Logger
 	tlsConfig         *tls.Config
@@ -25,10 +25,10 @@ type Server struct {
 	connState         func(net.Conn, http.ConnState)
 }
 
-type SetOpt func(*Server)
+type SetOpt func(*App)
 
-func NewServer(opts ...SetOpt) *Server {
-	s := &Server{
+func New(opts ...SetOpt) *App {
+	s := &App{
 		addr:      ":80",
 		tlsConfig: nil,
 	}
@@ -42,15 +42,15 @@ func NewServer(opts ...SetOpt) *Server {
 	return s
 }
 
-func (s *Server) Addr() string {
+func (s *App) Addr() string {
 	return s.addr
 }
 
-func (s *Server) Handler() http.Handler {
+func (s *App) Handler() http.Handler {
 	return s.router
 }
 
-func (s *Server) Run() error {
+func (s *App) Run() error {
 	mainCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -80,38 +80,38 @@ func (s *Server) Run() error {
 	return httpServer.ListenAndServe()
 }
 
-func (s *Server) Use(middlewares ...Handler) {
+func (s *App) Use(middlewares ...Handler) {
 	s.router.use(middlewares)
 }
 
-func (s *Server) Route(method Method, pattern string, handler Handler, middlewares ...Handler) *Route {
+func (s *App) Route(method Method, pattern string, handler Handler, middlewares ...Handler) *Route {
 	return s.router.Route(method, pattern, handler, middlewares)
 }
 
-func (s *Server) Group(pattern string, middlewares ...Handler) *Route {
+func (s *App) Group(pattern string, middlewares ...Handler) *Route {
 	return s.router.Group(pattern, middlewares)
 }
 
-func (s *Server) GET(pattern string, handler Handler, middlewares ...Handler) *Route {
+func (s *App) GET(pattern string, handler Handler, middlewares ...Handler) *Route {
 	return s.router.Route(GET, pattern, handler, middlewares)
 }
 
-func (s *Server) POST(pattern string, handler Handler, middlewares ...Handler) *Route {
+func (s *App) POST(pattern string, handler Handler, middlewares ...Handler) *Route {
 	return s.router.Route(POST, pattern, handler, middlewares)
 }
 
-func (s *Server) PUT(pattern string, handler Handler, middlewares ...Handler) *Route {
+func (s *App) PUT(pattern string, handler Handler, middlewares ...Handler) *Route {
 	return s.router.Route(PUT, pattern, handler, middlewares)
 }
 
-func (s *Server) DELETE(pattern string, handler Handler, middlewares ...Handler) *Route {
+func (s *App) DELETE(pattern string, handler Handler, middlewares ...Handler) *Route {
 	return s.router.Route(DELETE, pattern, handler, middlewares)
 }
 
-func (s *Server) PATCH(pattern string, handler Handler, middlewares ...Handler) *Route {
+func (s *App) PATCH(pattern string, handler Handler, middlewares ...Handler) *Route {
 	return s.router.Route(PATCH, pattern, handler, middlewares)
 }
 
-func (s *Server) OPTIONS(pattern string, handler Handler, middlewares ...Handler) *Route {
+func (s *App) OPTIONS(pattern string, handler Handler, middlewares ...Handler) *Route {
 	return s.router.Route(OPTIONS, pattern, handler, middlewares)
 }

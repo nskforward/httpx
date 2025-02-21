@@ -11,7 +11,7 @@ import (
 )
 
 func TestGroup(t *testing.T) {
-	app := httpx.NewServer()
+	app := httpx.New()
 	app.Use(buildMiddleware("app-mw-1"))
 	app.Use(buildMiddleware("app-mw-2"))
 

@@ -27,7 +27,7 @@ func newCtx(route *Route, w http.ResponseWriter, r *http.Request) *Ctx {
 		indexHandler: -1,
 		clientAddr:   r.RemoteAddr,
 		traceID:      traceID,
-		logger:       route.router.server.logger.With(slog.String("trace_id", traceID)),
+		logger:       route.router.app.logger.With(slog.String("trace_id", traceID)),
 	}
 }
 

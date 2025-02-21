@@ -7,14 +7,14 @@ import (
 
 type router struct {
 	mux            *http.ServeMux
-	server         *Server
+	app            *App
 	appMiddlewares []Handler
 }
 
-func newRouter(s *Server) *router {
+func newRouter(app *App) *router {
 	return &router{
-		mux:    http.NewServeMux(),
-		server: s,
+		mux: http.NewServeMux(),
+		app: app,
 	}
 }
 

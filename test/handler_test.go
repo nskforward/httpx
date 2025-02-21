@@ -11,7 +11,7 @@ import (
 )
 
 func TestHandler(t *testing.T) {
-	app := httpx.NewServer()
+	app := httpx.New()
 
 	app.Use(buildMiddleware("app-mw-1"), buildMiddleware("app-mw-2"))
 
