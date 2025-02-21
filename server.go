@@ -42,6 +42,10 @@ func NewServer(opts ...SetOpt) *Server {
 	return s
 }
 
+func (s *Server) Addr() string {
+	return s.addr
+}
+
 func (s *Server) Handler() http.Handler {
 	return s.router
 }
