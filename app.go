@@ -75,7 +75,11 @@ func (s *App) Run() error {
 	if s.tlsConfig != nil {
 		return httpServer.ListenAndServeTLS("", "")
 	}
-	return httpServer.ListenAndServe()
+	err := httpServer.ListenAndServe()
+	if err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 func (s *App) Use(middlewares ...Handler) {
