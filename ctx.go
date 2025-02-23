@@ -6,7 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
+	"net/url"
 )
 
 type Ctx struct {
@@ -30,13 +30,6 @@ func newCtx(route *Route, w http.ResponseWriter, r *http.Request) *Ctx {
 		traceID:      traceID,
 		logger:       route.router.app.logger.With(slog.String("trace_id", traceID)),
 	}
-}
-
-func (ctx *Ctx) ParseInput(dst any) error {
-	if strings.HasPrefix(ctx.r.Header.Get("Content-Type"), "application/json") {
-		return json.NewDecoder(ctx.Request().Body).Decode(dst)
-	}
-	return ErrUnsupportedMediaType
 }
 
 func (ctx *Ctx) TraceID() string {
@@ -95,6 +88,18 @@ func (ctx *Ctx) nextHandler() Handler {
 		return ctx.route.handlers[ctx.indexHandler]
 	}
 	return nil
+}
+
+func (ctx *Ctx) ParseInputJSON(dst any) error {
+	return json.NewDecoder(ctx.Request().Body).Decode(dst)
+}
+
+func (ctx *Ctx) ParseInputForm() (url.Values, error) {
+	err := ctx.Request().ParseForm()
+	if err != nil {
+		return nil, err
+	}
+	return ctx.Request().Form, nil
 }
 
 func (ctx *Ctx) ContentType(contentType string) {
