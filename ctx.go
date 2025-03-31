@@ -3,7 +3,6 @@ package httpx
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -74,9 +73,6 @@ func (ctx *Ctx) WriteError(err error) {
 		ctx.Logger().Warn("response headers already sent", "error", err)
 		return
 	}
-
-	fmt.Println("catch error")
-
 	if servErr, ok := err.(Error); ok {
 		servErr.Write(ctx)
 	} else {
