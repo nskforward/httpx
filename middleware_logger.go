@@ -12,6 +12,10 @@ func Logger(logHeaders bool) Handler {
 		err := ctx.Next()
 		t2 := time.Since(t1)
 
+		if err != nil {
+			ctx.WriteError(err)
+		}
+
 		var requestHeaders, responseHeaders []any
 
 		if logHeaders {
@@ -50,7 +54,7 @@ func Logger(logHeaders bool) Handler {
 			),
 		)
 
-		return err
+		return nil
 	}
 
 }
