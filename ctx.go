@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 )
 
 type Ctx struct {
@@ -17,6 +16,7 @@ type Ctx struct {
 	clientAddr   string
 	traceID      string
 	logger       *slog.Logger
+	formParsed   bool
 }
 
 func newCtx(route *Route, w http.ResponseWriter, r *http.Request) *Ctx {
@@ -94,12 +94,15 @@ func (ctx *Ctx) ParseInputJSON(dst any) error {
 	return json.NewDecoder(ctx.Request().Body).Decode(dst)
 }
 
-func (ctx *Ctx) ParseInputForm() (url.Values, error) {
-	err := ctx.Request().ParseForm()
-	if err != nil {
-		return nil, err
+func (ctx *Ctx) FormParam(field string) string {
+	if !ctx.formParsed {
+		err := ctx.Request().ParseMultipartForm(1024 * 1024)
+		if err != nil {
+			panic(err)
+		}
+		ctx.formParsed = true
 	}
-	return ctx.Request().Form, nil
+	return ctx.Request().FormValue(field)
 }
 
 func (ctx *Ctx) ContentType(contentType string) {
