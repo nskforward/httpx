@@ -17,6 +17,7 @@ type Ctx struct {
 	traceID      string
 	logger       *slog.Logger
 	formParsed   bool
+	Session      any
 }
 
 func newCtx(route *Route, w http.ResponseWriter, r *http.Request) *Ctx {
