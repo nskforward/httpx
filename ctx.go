@@ -94,17 +94,6 @@ func (ctx *Ctx) ParseInputJSON(dst any) error {
 	return json.NewDecoder(ctx.Request().Body).Decode(dst)
 }
 
-func (ctx *Ctx) FormParam(field string) string {
-	if !ctx.formParsed {
-		err := ctx.Request().ParseMultipartForm(1024 * 1024)
-		if err != nil {
-			panic(err)
-		}
-		ctx.formParsed = true
-	}
-	return ctx.Request().FormValue(field)
-}
-
 func (ctx *Ctx) ContentType(contentType string) {
 	ctx.SetHeader("Content-Type", contentType)
 }
