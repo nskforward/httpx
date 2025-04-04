@@ -16,7 +16,7 @@ type App struct {
 	addr              string
 	logger            *slog.Logger
 	tlsConfig         *tls.Config
-	router            *router
+	group             *Group
 	readHeaderTimeout time.Duration // read request headers
 	readTimeout       time.Duration // read whole request
 	writeTimeout      time.Duration // write whole response
@@ -36,7 +36,9 @@ func New(opts ...SetOpt) *App {
 	if s.logger == nil {
 		s.logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	}
-	s.router = newRouter(s)
+	s.group = &Group{
+		r: newRouter(s),
+	}
 	return s
 }
 
@@ -45,7 +47,7 @@ func (s *App) Addr() string {
 }
 
 func (s *App) Handler() http.Handler {
-	return s.router
+	return s.group.r
 }
 
 func (s *App) Run() error {
@@ -54,7 +56,7 @@ func (s *App) Run() error {
 
 	httpServer := http.Server{
 		Addr:              s.addr,
-		Handler:           s.router,
+		Handler:           s.group.r,
 		TLSConfig:         s.tlsConfig,
 		ReadTimeout:       s.readTimeout,
 		ReadHeaderTimeout: s.readHeaderTimeout,
@@ -83,37 +85,41 @@ func (s *App) Run() error {
 }
 
 func (s *App) Use(middlewares ...Handler) {
-	s.router.use(middlewares)
+	s.group.Use(middlewares...)
 }
 
-func (s *App) Route(method Method, pattern string, handler Handler, middlewares ...Handler) *Route {
-	return s.router.Route(method, pattern, handler, middlewares)
+func (s *App) Group(pattern string, middlewares ...Handler) Group {
+	return s.group.Group(pattern, middlewares...)
 }
 
-func (s *App) Group(pattern string, middlewares ...Handler) *Route {
-	return s.router.Group(pattern, middlewares)
+func (s *App) Custom(method, pattern string, handler Handler, middlewares ...Handler) {
+	s.group.Custom(method, pattern, handler, middlewares...)
 }
 
-func (s *App) GET(pattern string, handler Handler, middlewares ...Handler) *Route {
-	return s.router.Route(GET, pattern, handler, middlewares)
+func (s *App) ANY(pattern string, handler Handler, middlewares ...Handler) {
+	s.group.ANY(pattern, handler, middlewares...)
 }
 
-func (s *App) POST(pattern string, handler Handler, middlewares ...Handler) *Route {
-	return s.router.Route(POST, pattern, handler, middlewares)
+func (s *App) GET(pattern string, handler Handler, middlewares ...Handler) {
+	s.group.GET(pattern, handler, middlewares...)
 }
 
-func (s *App) PUT(pattern string, handler Handler, middlewares ...Handler) *Route {
-	return s.router.Route(PUT, pattern, handler, middlewares)
+func (s *App) POST(pattern string, handler Handler, middlewares ...Handler) {
+	s.group.POST(pattern, handler, middlewares...)
 }
 
-func (s *App) DELETE(pattern string, handler Handler, middlewares ...Handler) *Route {
-	return s.router.Route(DELETE, pattern, handler, middlewares)
+func (s *App) PUT(pattern string, handler Handler, middlewares ...Handler) {
+	s.group.PUT(pattern, handler, middlewares...)
 }
 
-func (s *App) PATCH(pattern string, handler Handler, middlewares ...Handler) *Route {
-	return s.router.Route(PATCH, pattern, handler, middlewares)
+func (s *App) DELETE(pattern string, handler Handler, middlewares ...Handler) {
+	s.group.DELETE(pattern, handler, middlewares...)
 }
 
-func (s *App) OPTIONS(pattern string, handler Handler, middlewares ...Handler) *Route {
-	return s.router.Route(OPTIONS, pattern, handler, middlewares)
+func (s *App) PATCH(pattern string, handler Handler, middlewares ...Handler) {
+	s.group.PATCH(pattern, handler, middlewares...)
+}
+
+func (s *App) OPTIONS(pattern string, handler Handler, middlewares ...Handler) {
+	s.group.OPTIONS(pattern, handler, middlewares...)
 }

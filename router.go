@@ -34,18 +34,13 @@ func (r *router) use(middlewares []Handler) {
 	}
 }
 
-func (r *router) Route(method Method, pattern string, handler Handler, middlewares []Handler) *Route {
+func (r *router) Route(method, pattern string, handler Handler, middlewares []Handler) {
 	if strings.Contains(pattern, " ") {
 		panic("white spaces not allowed in http router patterns")
 	}
 	handlers := append(r.appMiddlewares, middlewares...)
 	route := newRoute(r, pattern, append(handlers, handler))
 	route.registry(method)
-	return route
-}
-
-func (r *router) Group(pattern string, middlewares []Handler) *Route {
-	return newRoute(r, pattern, append(r.appMiddlewares, middlewares...))
 }
 
 func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {

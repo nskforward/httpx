@@ -15,7 +15,7 @@ func TestHandler(t *testing.T) {
 
 	app.Use(buildMiddleware("app-mw-1"), buildMiddleware("app-mw-2"))
 
-	app.Route(httpx.POST, "/pass", func(c *httpx.Ctx) error {
+	app.POST("/pass", func(c *httpx.Ctx) error {
 		return c.Text(200, "pass")
 	}, buildMiddleware("route-mw-1"), buildMiddleware("route-mw-2"))
 

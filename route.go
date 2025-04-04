@@ -20,27 +20,23 @@ func newRoute(router *router, pattern string, handlers []Handler) *Route {
 	}
 }
 
-func (route *Route) registry(method Method) {
+func (route *Route) registry(method string) {
 	if strings.Contains(route.pattern, " ") {
 		panic(fmt.Errorf("white spaces not allowed in http router pattern: %s", route.pattern))
 	}
 	pattern := route.pattern
-	if method != ANY {
+	if method != "" {
 		pattern = fmt.Sprintf("%s %s", method, route.pattern)
 	}
 	route.router.mux.Handle(pattern, route)
 }
 
-func (route *Route) Route(method Method, pattern string, handler Handler, middlewares ...Handler) *Route {
+func (route *Route) Route(method, pattern string, handler Handler, middlewares ...Handler) *Route {
 	handlers := append(route.handlers, middlewares...)
 	finalPattern := route.pattern + pattern
 	r := newRoute(route.router, finalPattern, append(handlers, handler))
 	r.registry(method)
 	return r
-}
-
-func (route *Route) Group(pattern string, middlewares ...Handler) *Route {
-	return newRoute(route.router, route.pattern+pattern, append(route.handlers, middlewares...))
 }
 
 func (route *Route) ServeHTTP(w http.ResponseWriter, r *http.Request) {
