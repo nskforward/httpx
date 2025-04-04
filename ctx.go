@@ -65,6 +65,17 @@ func (ctx *Ctx) Next() error {
 	return ErrNotFound
 }
 
+func (ctx *Ctx) FormParam(field string) string {
+	if !ctx.formParsed {
+		err := ctx.Request().ParseMultipartForm(1024 * 1024)
+		if err != nil {
+			panic(err)
+		}
+		ctx.formParsed = true
+	}
+	return ctx.Request().FormValue(field)
+}
+
 func (ctx *Ctx) Sent() bool {
 	return ctx.w.Status() > 0
 }
