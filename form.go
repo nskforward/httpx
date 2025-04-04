@@ -49,10 +49,8 @@ func (ctx *Ctx) FormParam(field string, opts ...ValidateOpt) (string, error) {
 	return s.Validate(field, ctx.Request().FormValue(field))
 }
 
-func Required() ValidateOpt {
-	return func(s *validateStrategy) {
-		s.required = true
-	}
+func Required(s *validateStrategy) {
+	s.required = true
 }
 
 func MinLength(n int) ValidateOpt {
@@ -67,14 +65,10 @@ func MaxLength(n int) ValidateOpt {
 	}
 }
 
-func Lowercase() ValidateOpt {
-	return func(s *validateStrategy) {
-		s.lowercase = true
-	}
+func Lowercase(s *validateStrategy) {
+	s.lowercase = true
 }
 
-func Uppercase() ValidateOpt {
-	return func(s *validateStrategy) {
-		s.uppercase = true
-	}
+func Uppercase(s *validateStrategy) {
+	s.uppercase = true
 }
