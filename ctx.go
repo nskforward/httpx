@@ -49,6 +49,10 @@ func (ctx *Ctx) Origin() string {
 	return ctx.r.Header.Get("Origin")
 }
 
+func (ctx *Ctx) Status() int {
+	return ctx.w.Status()
+}
+
 func (ctx *Ctx) Request() *http.Request {
 	return ctx.r
 }
