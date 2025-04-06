@@ -9,6 +9,31 @@ import (
 	"strings"
 )
 
+type ProtectedFS struct {
+	fs        fs.FS
+	indexFile string
+}
+
+func (pfs ProtectedFS) Open(name string) (fs.File, error) {
+	f, err := pfs.fs.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	s, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	if s.IsDir() {
+		f.Close()
+		f, err = pfs.fs.Open(filepath.Join(name, pfs.indexFile))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return f, nil
+}
+
 /*
 	 	ServeDir servers dir files dynamically based on request URL path:
 
@@ -27,7 +52,7 @@ import (
 		GET	/static/1.html  -->  200 OK  /data/static/1.html
 		GET	/static/2.html  -->  200 OK  /data/static/2.html
 */
-func ServeFS(dir, stripPrefix string) Handler {
+func ServeFolder(dir, indexFile, stripPrefix string) Handler {
 	fi, err := os.Stat(dir)
 	if err != nil {
 		panic(dir)
@@ -36,38 +61,14 @@ func ServeFS(dir, stripPrefix string) Handler {
 		panic(fmt.Errorf("directory cannot be a file: %s", dir))
 	}
 
-	fserver := http.FileServer(http.FS(ProtectedFS{fs: os.DirFS(dir)}))
+	fserver := http.FileServer(http.FS(ProtectedFS{fs: os.DirFS(dir), indexFile: indexFile}))
 
-	return func(ctx *Ctx) error {
+	return func(req *http.Request, resp *Response) error {
 		if stripPrefix != "" {
-			ctx.Request().URL.Path = strings.TrimPrefix(ctx.Request().URL.Path, stripPrefix)
-			ctx.Request().URL.RawPath = strings.TrimPrefix(ctx.Request().URL.RawPath, stripPrefix)
+			req.URL.Path = strings.TrimPrefix(req.URL.Path, stripPrefix)
+			req.URL.RawPath = strings.TrimPrefix(req.URL.RawPath, stripPrefix)
 		}
-		fserver.ServeHTTP(ctx.w, ctx.r)
+		fserver.ServeHTTP(resp.w, req)
 		return nil
 	}
-}
-
-type ProtectedFS struct {
-	fs fs.FS
-}
-
-func (pfs ProtectedFS) Open(name string) (fs.File, error) {
-	f, err := pfs.fs.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	s, err := f.Stat()
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	if s.IsDir() {
-		f.Close()
-		f, err = pfs.fs.Open(filepath.Join(name, "index.html"))
-		if err != nil {
-			return nil, err
-		}
-	}
-	return f, nil
 }

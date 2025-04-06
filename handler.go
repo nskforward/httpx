@@ -1,3 +1,5 @@
 package httpx
 
-type Handler func(*Ctx) error
+import "net/http"
+
+type Handler func(req *http.Request, resp *Response) error

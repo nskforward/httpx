@@ -1,25 +1,26 @@
-package httpx
+package middleware
 
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/nskforward/httpx"
 )
 
-func Recover(ctx *Ctx) error {
+func Recover(req *http.Request, resp *httpx.Response) error {
 	defer func() {
 		if r := recover(); r != nil {
 			err, ok := r.(error)
 			if !ok {
 				err = fmt.Errorf("%v", r)
-
 			}
 			if err == http.ErrAbortHandler {
 				panic(err)
 			}
-			ctx.Logger().Error("panic", "error", err)
-			ErrInternalServer.Write(ctx)
+			resp.Logger().Error("panic", "error", err)
+			resp.InternalServerError()
 		}
 	}()
 
-	return ctx.Next()
+	return resp.Next()
 }

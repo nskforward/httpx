@@ -1,4 +1,4 @@
-package httpx
+package middleware
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nskforward/httpx"
 )
 
 type CorsOptions struct {
@@ -20,7 +22,7 @@ type CorsOptions struct {
 	maxAgeString     string
 }
 
-func CorsMiddleware(options CorsOptions) Handler {
+func CorsMiddleware(options CorsOptions) httpx.Handler {
 	for _, origin := range options.AllowOrigins {
 		if origin == "*" && len(options.AllowOrigins) > 1 {
 			panic("cors: AllowOrigins cannot contain several values with wildcard")
@@ -55,68 +57,68 @@ func CorsMiddleware(options CorsOptions) Handler {
 		panic("cors: AllowCredentials can be used only with exact origin(s)")
 	}
 
-	return func(ctx *Ctx) error {
-		if ctx.Request().Method == http.MethodOptions {
-			origin := ctx.Origin()
+	return func(req *http.Request, resp *httpx.Response) error {
+		if req.Method == http.MethodOptions {
+			origin := req.Header.Get("Origin")
 			if origin == "" {
-				return ctx.Next()
+				return resp.Next()
 			}
-			ctx.SetHeader("Vary", "Origin")
-			err := corsSendHeaders(ctx, options, origin)
+			resp.SetHeader("Vary", "Origin")
+			err := corsSendHeaders(resp, options, origin)
 			if err != nil {
 				return err
 			}
-			return ctx.NoContent()
+			return resp.NoContent()
 		}
 
-		if ctx.Request().Header.Get("Sec-Fetch-Mode") == "cors" {
-			origin := ctx.Origin()
+		if req.Header.Get("Sec-Fetch-Mode") == "cors" {
+			origin := req.Header.Get("Origin")
 			if origin == "" {
-				return ctx.Next()
+				return resp.Next()
 			}
-			err := corsSendHeaders(ctx, options, origin)
+			err := corsSendHeaders(resp, options, origin)
 			if err != nil {
 				return err
 			}
 		}
 
-		return ctx.Next()
+		return resp.Next()
 	}
 }
 
-func corsSendHeaders(ctx *Ctx, options CorsOptions, origin string) error {
+func corsSendHeaders(resp *httpx.Response, options CorsOptions, origin string) error {
 	if options.allowAnyOrigin {
-		ctx.SetHeader("Access-Control-Allow-Origin", "*")
+		resp.SetHeader("Access-Control-Allow-Origin", "*")
 	}
 
 	if !options.allowAnyOrigin && !slices.Contains(options.AllowOrigins, origin) {
-		return ctx.Text(http.StatusForbidden, fmt.Sprintf("unknown origin: %s", origin))
+		return resp.Text(http.StatusForbidden, fmt.Sprintf("unknown origin: %s", origin))
 	}
 
-	ctx.SetHeader("Access-Control-Allow-Origin", origin)
+	resp.SetHeader("Access-Control-Allow-Origin", origin)
 
 	if len(options.AllowMethods) > 0 {
-		ctx.SetHeader("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
+		resp.SetHeader("Access-Control-Allow-Methods", strings.Join(options.AllowMethods, ", "))
 	} else {
-		ctx.SetHeader("Access-Control-Allow-Methods", "*")
+		resp.SetHeader("Access-Control-Allow-Methods", "*")
 	}
 
 	if len(options.AllowedHeaders) > 0 {
-		ctx.SetHeader("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
+		resp.SetHeader("Access-Control-Allow-Headers", strings.Join(options.AllowedHeaders, ", "))
 	} else {
-		ctx.SetHeader("Access-Control-Allow-Headers", "*")
+		resp.SetHeader("Access-Control-Allow-Headers", "*")
 	}
 
 	if options.AllowCredentials {
-		ctx.SetHeader("Access-Control-Allow-Credentials", "true")
+		resp.SetHeader("Access-Control-Allow-Credentials", "true")
 	}
 
 	if len(options.ExposedHeaders) > 0 {
-		ctx.SetHeader("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
+		resp.SetHeader("Access-Control-Expose-Headers", strings.Join(options.ExposedHeaders, ", "))
 	} else {
-		ctx.SetHeader("Access-Control-Expose-Headers", "*")
+		resp.SetHeader("Access-Control-Expose-Headers", "*")
 	}
 
-	ctx.SetHeader("Access-Control-Max-Age", options.maxAgeString)
+	resp.SetHeader("Access-Control-Max-Age", options.maxAgeString)
 	return nil
 }

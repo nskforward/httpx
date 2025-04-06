@@ -1,117 +1,49 @@
 package httpx
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"sync/atomic"
-	"time"
 )
 
-var (
-	ErrSSEventStreamClosed = fmt.Errorf("stream cloased")
-)
-
-type SSEventStream struct {
+type SSE struct {
 	w          http.ResponseWriter
-	buf        bytes.Buffer
 	controller *http.ResponseController
-	encoder    *json.Encoder
-	active     atomic.Bool
-	intput     chan SSEvent
-	ctx        context.Context
-	cancel     context.CancelFunc
 }
 
-type SSEvent struct {
-	Type    string `json:"type"`
-	Payload any    `json:"payload"`
-}
+func (resp *Response) Stream() *SSE {
+	resp.SetHeader("Content-Type", "text/event-stream")
+	resp.SetHeader("Cache-Control", "no-store")
 
-func NewSSEventStream(w http.ResponseWriter, r *http.Request) *SSEventStream {
-	ctx, cancel := context.WithCancel(r.Context())
-
-	s := &SSEventStream{
-		w:          w,
-		controller: http.NewResponseController(w),
-		encoder:    json.NewEncoder(w),
-		intput:     make(chan SSEvent, 4),
-		ctx:        ctx,
-		cancel:     cancel,
+	return &SSE{
+		w:          resp.w,
+		controller: http.NewResponseController(resp.w),
 	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-store")
-
-	go s.loop()
-	return s
 }
 
-func (s *SSEventStream) Close() {
-	s.active.Store(false)
-	s.cancel()
-	close(s.intput)
-}
-
-func (s *SSEventStream) Next() bool {
-	return s.active.Load()
-}
-
-func (s *SSEventStream) Send(event SSEvent) error {
-	if !s.active.Load() {
-		return ErrSSEventStreamClosed
+func (sse *SSE) Flush() error {
+	_, err := sse.w.Write([]byte{'\n'})
+	if err != nil {
+		return err
 	}
-	s.intput <- event
+	return sse.controller.Flush()
+}
+
+func (sse *SSE) WriteField(name, value string) error {
+	_, err := io.WriteString(sse.w, name)
+	if err != nil {
+		return err
+	}
+	_, err = sse.w.Write([]byte{':', ' '})
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(sse.w, value)
+	if err != nil {
+		return err
+	}
+	_, err = sse.w.Write([]byte{'\n'})
+	if err != nil {
+		return err
+	}
 	return nil
-}
-
-func (s *SSEventStream) loop() {
-	ticker := time.NewTicker(15 * time.Second)
-	defer ticker.Stop()
-
-	defer s.active.Store(false)
-
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-
-		case <-ticker.C:
-			err := s.ping()
-			if err != nil {
-				return
-			}
-
-		case event := <-s.intput:
-			err := s.write(event)
-			if err != nil {
-				return
-			}
-		}
-	}
-}
-
-func (s *SSEventStream) ping() error {
-	_, err := s.w.Write([]byte(":ping\n"))
-	if err != nil {
-		return err
-	}
-	return s.controller.Flush()
-}
-
-func (s *SSEventStream) write(event SSEvent) error {
-	s.buf.WriteString("data: ")
-	err := s.encoder.Encode(event)
-	if err != nil {
-		return err
-	}
-	s.buf.WriteString("\n\n")
-	_, err = io.Copy(s.w, &s.buf)
-	if err != nil {
-		return err
-	}
-	return s.controller.Flush()
 }
