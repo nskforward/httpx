@@ -84,11 +84,16 @@ func (router *Router) executeRoute(w http.ResponseWriter, req *http.Request, h [
 
 	err := resp.Next()
 	if err != nil {
-		fmt.Println("unexpected error:", err)
-		resp.InternalServerError()
+		apiErr, ok := err.(*APIError)
+		if ok {
+			resp.Text(apiErr.Code, apiErr.Mesage)
+		} else {
+			resp.logger.Error("unexpected error", "error", err)
+			resp.InternalServerError()
+		}
 	}
 	if resp.StatusCode() == 0 {
-		fmt.Println("unexpeted error:", "request not handled")
+		resp.logger.Error("unexpected error", "error", "request not handled")
 		resp.Text(404, "handler not found")
 	}
 }

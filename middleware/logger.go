@@ -16,8 +16,13 @@ func Logger(logHeaders bool) httpx.Handler {
 		t2 := time.Since(t1)
 
 		if err != nil {
-			resp.Logger().Error(err.Error())
-			resp.InternalServerError()
+			apiErr, ok := err.(*httpx.APIError)
+			if ok {
+				resp.Text(apiErr.Code, apiErr.Mesage)
+			} else {
+				resp.Logger().Error(err.Error())
+				resp.InternalServerError()
+			}
 		}
 
 		var requestHeaders, responseHeaders []any
