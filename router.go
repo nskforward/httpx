@@ -59,47 +59,48 @@ func (router *Router) CustomMethod(method, pattern string, handler Handler, midd
 	if handler == nil {
 		panic(fmt.Errorf("handler cannot be nil for pattern '%s'", pattern))
 	}
-	finalHandler := append(router.middlewares, append(middleware, handler)...)
+	finalHandler := joinHandlers(handler, router.middlewares, middleware)
 	if method != "" {
 		pattern = fmt.Sprintf("%s %s", method, pattern)
 	}
-	router.mux.HandleFunc(pattern, router.handlerFunc(finalHandler))
+	router.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		resp := NewResponse(router.logger, w, finalHandler)
+		err := resp.Next(r)
+		router.handleError(resp, err)
+	})
 }
 
-func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h, pattern := router.mux.Handler(r)
-	if pattern == "" {
-		handler := append(router.middlewares, func(req *http.Request, resp *Response) error {
-			h.ServeHTTP(resp.w, req)
-			return nil
-		})
-		router.executeRoute(w, r, handler)
-		return
-	}
-	h.ServeHTTP(w, r)
-}
-
-func (router *Router) executeRoute(w http.ResponseWriter, req *http.Request, h []Handler) {
-	resp := NewResponse(router.logger, w, h)
-
-	err := resp.Next(req)
+func (router *Router) handleError(resp *Response, err error) {
 	if err != nil {
 		apiErr, ok := err.(*APIError)
 		if ok {
 			resp.Text(apiErr.Code, apiErr.Mesage)
-		} else {
-			resp.logger.Error("unexpected error", "error", err)
-			resp.InternalServerError()
+			return
 		}
+		router.logger.Error("unexpected error", "error", err)
+		resp.Text(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		return
 	}
 	if resp.StatusCode() == 0 {
-		resp.logger.Error("unexpected error", "error", "request not handled")
-		resp.Text(404, "handler not found")
+		router.logger.Error("unexpected error", "error", "final handler not found")
+		resp.Text(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 }
 
-func (router *Router) handlerFunc(handler []Handler) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		router.executeRoute(w, r, handler)
+func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h, pattern := router.mux.Handler(r)
+	if pattern != "" {
+		h.ServeHTTP(w, r)
+		return
+	}
+	router.executeBadHandler(w, r, func(_ *http.Request, _ *Response) error {
+		h.ServeHTTP(w, r)
+		return nil
 	})
+}
+
+func (router *Router) executeBadHandler(w http.ResponseWriter, r *http.Request, h Handler) {
+	resp := NewResponse(router.logger, w, joinHandlers(h, router.middlewares))
+	err := resp.Next(r)
+	router.handleError(resp, err)
 }

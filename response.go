@@ -2,27 +2,27 @@ package httpx
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 )
 
 type Response struct {
-	logger   *slog.Logger
-	w        *ResponseWrapper
-	handlers []Handler
-	index    int
+	logger *slog.Logger
+	w      *ResponseWrapper
+	index  int
+	h      []Handler
 }
 
-func NewResponse(logger *slog.Logger, w http.ResponseWriter, handler []Handler) *Response {
+func NewResponse(logger *slog.Logger, w http.ResponseWriter, h []Handler) *Response {
 	if logger == nil {
 		panic("httpx.NewResponse requres not nil logger")
 	}
 	return &Response{
-		w:        NewResponseWrapper(w),
-		handlers: handler,
-		index:    0,
-		logger:   logger,
+		w:      NewResponseWrapper(w),
+		logger: logger,
+		h:      h,
 	}
 }
 
@@ -59,12 +59,11 @@ func (resp *Response) Unauthorized() error {
 }
 
 func (resp *Response) Next(req *http.Request) error {
-	if resp.index < len(resp.handlers) {
-		next := resp.handlers[resp.index]
+	if resp.index < len(resp.h) {
 		resp.index++
-		return next(req, resp)
+		return resp.h[resp.index-1](req, resp)
 	}
-	return nil
+	return errors.New("no next handler found")
 }
 
 func (resp *Response) Text(code int, msg string) error {

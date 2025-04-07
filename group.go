@@ -19,7 +19,7 @@ func (g *Group) Use(middleware ...Handler) {
 }
 
 func (g *Group) Group(pattern string, middlewares ...Handler) *Group {
-	return NewGroup(g.router, g.joinPattern(pattern), append(g.middlewares, middlewares...))
+	return NewGroup(g.router, g.joinPattern(pattern), joinHandlers(nil, g.middlewares, middlewares))
 }
 
 func (g *Group) joinPattern(pattern string) string {
@@ -58,4 +58,15 @@ func (g *Group) ANY(pattern string, handler Handler, middleware ...Handler) {
 
 func (g *Group) CustomMethod(method, pattern string, handler Handler, middleware ...Handler) {
 	g.router.CustomMethod(method, g.joinPattern(pattern), handler, append(g.middlewares, middleware...)...)
+}
+
+func joinHandlers(h Handler, arr ...[]Handler) []Handler {
+	result := make([]Handler, 0, 32)
+	for _, a := range arr {
+		result = append(result, a...)
+	}
+	if h != nil {
+		result = append(result, h)
+	}
+	return result
 }
