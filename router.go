@@ -80,9 +80,9 @@ func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (router *Router) executeRoute(w http.ResponseWriter, req *http.Request, h []Handler) {
-	resp := NewResponse(router.logger, w, req, h)
+	resp := NewResponse(router.logger, w, h)
 
-	err := resp.Next()
+	err := resp.Next(req)
 	if err != nil {
 		apiErr, ok := err.(*APIError)
 		if ok {

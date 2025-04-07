@@ -41,7 +41,7 @@ func TestMiddleware(t *testing.T) {
 func buildMiddleware(text string) httpx.Handler {
 	return func(req *http.Request, resp *httpx.Response) error {
 		fmt.Println("call middleware before:", text)
-		err := resp.Next()
+		err := resp.Next(req)
 		fmt.Println("call middleware after:", text)
 		return err
 	}

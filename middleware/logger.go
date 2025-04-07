@@ -12,7 +12,7 @@ func Logger(logHeaders bool) httpx.Handler {
 	return func(req *http.Request, resp *httpx.Response) error {
 
 		t1 := time.Now()
-		err := resp.Next()
+		err := resp.Next(req)
 		t2 := time.Since(t1)
 
 		if err != nil {

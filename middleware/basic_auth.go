@@ -15,7 +15,7 @@ func BasicAuth(creds map[string]string) httpx.Handler {
 			hashedPassword, ok := creds[user]
 			if ok {
 				if bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(pass)) == nil {
-					return resp.Next()
+					return resp.Next(req)
 				}
 			}
 		}

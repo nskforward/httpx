@@ -10,26 +10,20 @@ import (
 type Response struct {
 	logger   *slog.Logger
 	w        *ResponseWrapper
-	r        *http.Request
 	handlers []Handler
 	index    int
 }
 
-func NewResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, handler []Handler) *Response {
+func NewResponse(logger *slog.Logger, w http.ResponseWriter, handler []Handler) *Response {
 	if logger == nil {
 		panic("httpx.NewResponse requres not nil logger")
 	}
 	return &Response{
 		w:        NewResponseWrapper(w),
-		r:        r,
 		handlers: handler,
 		index:    0,
 		logger:   logger,
 	}
-}
-
-func (resp *Response) TraceID() string {
-	return resp.r.Header.Get("X-Trace-Id")
 }
 
 func (resp *Response) ResponseWriter() http.ResponseWriter {
@@ -52,7 +46,7 @@ func (resp *Response) SetHeader(name, value string) {
 	resp.w.Header().Set(name, value)
 }
 
-func (resp *Response) WithLogFields(args ...any) {
+func (resp *Response) LoggingWith(args ...any) {
 	resp.logger = resp.logger.With(args...)
 }
 
@@ -64,11 +58,11 @@ func (resp *Response) Unauthorized() error {
 	return resp.Text(http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 }
 
-func (resp *Response) Next() error {
+func (resp *Response) Next(req *http.Request) error {
 	if resp.index < len(resp.handlers) {
 		next := resp.handlers[resp.index]
 		resp.index++
-		return next(resp.r, resp)
+		return next(req, resp)
 	}
 	return nil
 }

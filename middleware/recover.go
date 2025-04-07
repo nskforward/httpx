@@ -22,5 +22,5 @@ func Recover(req *http.Request, resp *httpx.Response) error {
 		}
 	}()
 
-	return resp.Next()
+	return resp.Next(req)
 }

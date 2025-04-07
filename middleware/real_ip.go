@@ -17,6 +17,6 @@ func RealIP(header string) httpx.Handler {
 			}
 			req.RemoteAddr = addr
 		}
-		return resp.Next()
+		return resp.Next(req)
 	}
 }

@@ -16,7 +16,7 @@ func TestMethodNotAllowed(t *testing.T) {
 	router := httpx.NewRouter(nil)
 	router.Use(func(req *http.Request, resp *httpx.Response) error {
 		fmt.Println("event:", time.Now().Format("15:04:05.000"), req.Method, req.URL.Path)
-		err := resp.Next()
+		err := resp.Next(req)
 		fmt.Println("status:", resp.StatusCode())
 		if err != nil {
 			fmt.Println("error:", err)

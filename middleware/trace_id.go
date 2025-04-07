@@ -13,6 +13,6 @@ func TraceID(req *http.Request, resp *httpx.Response) error {
 		traceID = uuid.New().String()
 		req.Header.Set("X-Trace-Id", traceID)
 	}
-	resp.WithLogFields("trace-id", traceID)
-	return resp.Next()
+	resp.LoggingWith("trace-id", traceID)
+	return resp.Next(req)
 }
