@@ -19,6 +19,7 @@ func CORS(cfg Config) httpx.Handler {
 
 		ok, err := sendPreflight(cfg, origin, maxAge, req, resp)
 		if err != nil {
+			resp.Logger().Warn("CORS validation failed", "error", err.Error())
 			return resp.Forbidden(err)
 		}
 		if ok {
@@ -27,6 +28,7 @@ func CORS(cfg Config) httpx.Handler {
 
 		err = sendAllowOrigin(cfg, origin, resp)
 		if err != nil {
+			resp.Logger().Warn("CORS validation failed", "error", err.Error())
 			return resp.Forbidden(err)
 		}
 
