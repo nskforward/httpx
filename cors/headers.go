@@ -38,15 +38,16 @@ func sendAllowMethods(cfg Config, requestedMethod string, resp *httpx.Response) 
 
 func sendAllowHeaders(cfg Config, requestedHeaders string, resp *httpx.Response) error {
 	headers := strings.Split(requestedHeaders, ",")
+
 	for _, h := range headers {
-		trimmed := strings.TrimSpace(h)
-		if slices.Contains([]string{"Accept", "Accept-Language", "Content-Language", "Content-Type", "Range"}, trimmed) {
+		normalized := toTitle(strings.TrimSpace(h))
+		if slices.Contains([]string{"Accept", "Accept-Language", "Content-Language", "Content-Type", "Range"}, normalized) {
 			continue
 		}
-		if slices.Contains(cfg.AllowHeaders, trimmed) {
+		if slices.Contains(cfg.AllowHeaders, normalized) {
 			continue
 		}
-		return fmt.Errorf("cors request header '%s' not allowed", trimmed)
+		return fmt.Errorf("cors request header '%s' not allowed", normalized)
 	}
 
 	resp.SetHeader("Access-Control-Allow-Headers", strings.Join(cfg.AllowHeaders, ", "))
@@ -68,4 +69,8 @@ func sendExposeHeaders(cfg Config, resp *httpx.Response) {
 func sendMaxAge(maxAge string, resp *httpx.Response) {
 	resp.SetHeader("Access-Control-Max-Age", maxAge)
 	resp.SetHeader("Vary", "Origin")
+}
+
+func toTitle(s string) string {
+	return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
 }
