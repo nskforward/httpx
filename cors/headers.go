@@ -34,6 +34,9 @@ func sendAllowMethods(cfg Config, requestedMethod string, resp *httpx.Response) 
 		resp.SetHeader("Access-Control-Allow-Methods", "*")
 		return nil
 	}
+	if slices.Contains([]string{"GET", "POST", "HEAD"}, requestedMethod) {
+		resp.SetHeader("Access-Control-Allow-Methods", "*")
+	}
 	if slices.Contains(cfg.AllowMethods, requestedMethod) {
 		resp.SetHeader("Access-Control-Allow-Methods", strings.Join(cfg.AllowMethods, ", "))
 		return nil
@@ -49,9 +52,14 @@ func sendAllowHeaders(cfg Config, requestedHeaders string, resp *httpx.Response)
 		return nil
 	}
 	for _, h := range headers {
-		if !slices.Contains(cfg.AllowHeaders, strings.TrimSpace(h)) {
-			return fmt.Errorf("cors request header '%s' not allowed", h)
+		trimmed := strings.TrimSpace(h)
+		if slices.Contains([]string{"Accept", "Accept-Language", "Content-Language", "Content-Type", "Range"}, trimmed) {
+			continue
 		}
+		if slices.Contains(cfg.AllowHeaders, strings.TrimSpace(h)) {
+			continue
+		}
+		return fmt.Errorf("cors request header '%s' not allowed", h)
 	}
 
 	resp.SetHeader("Access-Control-Allow-Headers", strings.Join(cfg.AllowHeaders, ", "))
