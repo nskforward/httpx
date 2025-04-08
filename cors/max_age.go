@@ -2,12 +2,11 @@ package cors
 
 import (
 	"strconv"
-	"time"
 )
 
 func NormalizeMaxAge(cfg Config) string {
-	if cfg.MaxAge == 0 {
-		cfg.MaxAge = time.Minute
+	if cfg.MaxAge > 0 {
+		return strconv.Itoa(int(cfg.MaxAge.Seconds()))
 	}
-	return strconv.Itoa(int(cfg.MaxAge.Seconds()))
+	return ""
 }

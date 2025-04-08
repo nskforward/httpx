@@ -9,13 +9,16 @@ import (
 )
 
 func sendAllowOrigin(cfg Config, origin string, resp *httpx.Response) error {
+
 	if slices.Contains(cfg.AllowOrigins, origin) {
+		resp.SetHeader("Vary", "Origin")
 		resp.SetHeader("Access-Control-Allow-Origin", origin)
 		return nil
 	}
 
 	if cfg.AllowLocalhost {
 		if strings.HasSuffix(origin, "://localhost") || strings.Contains(origin, "://localhost:") {
+			resp.SetHeader("Vary", "Origin")
 			resp.SetHeader("Access-Control-Allow-Origin", origin)
 			return nil
 		}
@@ -67,8 +70,9 @@ func sendExposeHeaders(cfg Config, resp *httpx.Response) {
 }
 
 func sendMaxAge(maxAge string, resp *httpx.Response) {
-	resp.SetHeader("Access-Control-Max-Age", maxAge)
-	resp.SetHeader("Vary", "Origin")
+	if maxAge != "" {
+		resp.SetHeader("Access-Control-Max-Age", maxAge)
+	}
 }
 
 func toTitle(s string) string {
