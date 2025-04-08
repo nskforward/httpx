@@ -36,6 +36,7 @@ func sendAllowMethods(cfg Config, requestedMethod string, resp *httpx.Response) 
 	}
 	if slices.Contains([]string{"GET", "POST", "HEAD"}, requestedMethod) {
 		resp.SetHeader("Access-Control-Allow-Methods", "*")
+		return nil
 	}
 	if slices.Contains(cfg.AllowMethods, requestedMethod) {
 		resp.SetHeader("Access-Control-Allow-Methods", strings.Join(cfg.AllowMethods, ", "))
