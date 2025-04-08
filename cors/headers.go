@@ -21,21 +21,12 @@ func sendAllowOrigin(cfg Config, origin string, resp *httpx.Response) error {
 		}
 	}
 
-	if len(cfg.AllowOrigins) == 0 && !cfg.AllowCredentials {
-		resp.SetHeader("Access-Control-Allow-Origin", "*")
-		return nil
-	}
-
 	return fmt.Errorf("cors origin '%s' not allowed", origin)
 }
 
 func sendAllowMethods(cfg Config, requestedMethod string, resp *httpx.Response) error {
-	if len(cfg.AllowMethods) == 0 && !cfg.AllowCredentials {
-		resp.SetHeader("Access-Control-Allow-Methods", "*")
-		return nil
-	}
 	if slices.Contains([]string{"GET", "POST", "HEAD"}, requestedMethod) {
-		resp.SetHeader("Access-Control-Allow-Methods", "*")
+		resp.SetHeader("Access-Control-Allow-Methods", strings.Join(cfg.AllowMethods, ", "))
 		return nil
 	}
 	if slices.Contains(cfg.AllowMethods, requestedMethod) {
@@ -47,20 +38,15 @@ func sendAllowMethods(cfg Config, requestedMethod string, resp *httpx.Response) 
 
 func sendAllowHeaders(cfg Config, requestedHeaders string, resp *httpx.Response) error {
 	headers := strings.Split(requestedHeaders, ",")
-
-	if len(cfg.AllowHeaders) == 0 && !cfg.AllowCredentials {
-		resp.SetHeader("Access-Control-Allow-Headers", "*")
-		return nil
-	}
 	for _, h := range headers {
 		trimmed := strings.TrimSpace(h)
 		if slices.Contains([]string{"Accept", "Accept-Language", "Content-Language", "Content-Type", "Range"}, trimmed) {
 			continue
 		}
-		if slices.Contains(cfg.AllowHeaders, strings.TrimSpace(h)) {
+		if slices.Contains(cfg.AllowHeaders, trimmed) {
 			continue
 		}
-		return fmt.Errorf("cors request header '%s' not allowed", h)
+		return fmt.Errorf("cors request header '%s' not allowed", trimmed)
 	}
 
 	resp.SetHeader("Access-Control-Allow-Headers", strings.Join(cfg.AllowHeaders, ", "))
