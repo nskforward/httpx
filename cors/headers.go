@@ -1,24 +1,30 @@
 package cors
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/nskforward/httpx"
 )
 
 func sendAllowOrigin(cfg Config, origin string, resp *httpx.Response) {
-	for _, h := range cfg.AllowOrigins {
-		if h == origin {
-			resp.SetHeader("Access-Control-Allow-Origin", origin)
-			return
-		}
+	if slices.Contains(cfg.AllowOrigins, origin) {
+		resp.SetHeader("Access-Control-Allow-Origin", origin)
+		return
 	}
+
 	if cfg.AllowLocalhost {
 		if strings.HasSuffix(origin, "://localhost") || strings.Contains(origin, "://localhost:") {
 			resp.SetHeader("Access-Control-Allow-Origin", origin)
 			return
 		}
 	}
+
+	if len(cfg.AllowOrigins) == 0 {
+		resp.SetHeader("Access-Control-Allow-Origin", "*")
+		return
+	}
+
 	resp.SetHeader("Access-Control-Allow-Origin", cfg.AllowOrigins[0])
 }
 
