@@ -91,8 +91,8 @@ func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTP(w, r)
 		return
 	}
-	router.executeBadHandler(w, r, func(_ *http.Request, _ *Response) error {
-		h.ServeHTTP(w, r)
+	router.executeBadHandler(w, r, func(req *http.Request, resp *Response) error {
+		h.ServeHTTP(resp.w, req)
 		return nil
 	})
 }
