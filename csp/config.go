@@ -36,6 +36,7 @@ type Config struct {
 	BaseURI []string // base-uri
 
 	// frame-ancestors specifies valid parents that may embed a page using <frame>, <iframe>, <object>, or <embed>.
+	// a more flexible replacement for the X-Frame-Options header
 	FrameAncestors []string // frame-ancestors
 
 	// form-action restricts the URLs which can be used as the target of a form submissions from a given context.
@@ -50,9 +51,13 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		DefaultSources: []string{Self},
-		ObjectSources:  []string{None},
+		DefaultSources: []string{None},
+		ScriptSources:  []string{Self},
+		StyleSources:   []string{Self},
+		FontSources:    []string{Self},
+		ImageSources:   []string{Self},
 		BaseURI:        []string{None},
-		FrameAncestors: []string{None}, // a more flexible replacement for the X-Frame-Options header
+		FrameAncestors: []string{None},
+		FormcAtion:     []string{None},
 	}
 }

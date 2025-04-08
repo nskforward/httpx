@@ -7,7 +7,7 @@ type Config struct {
 	// AllowLocalhost allows localhost origin with any port and schema even AllowOrigins does not contain that origin
 	AllowLocalhost bool
 
-	// AllowCredentials allows cookies, client TLS certificate, Authorization header
+	// AllowCredentials allows cookies, client TLS certificate, headers with password
 	AllowCredentials bool
 
 	// AllowOrigins allow the origin list for CORS requests

@@ -50,12 +50,25 @@ func (resp *Response) LoggingWith(args ...any) {
 	resp.logger = resp.logger.With(args...)
 }
 
-func (resp *Response) InternalServerError() error {
+func (resp *Response) InternalServerError(err error) error {
+	resp.logger.Error("internal server error", "error", err.Error())
 	return resp.Text(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 }
 
 func (resp *Response) Unauthorized() error {
 	return resp.Text(http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
+}
+
+func (resp *Response) Forbidden(err error) error {
+	return resp.Text(http.StatusForbidden, err.Error())
+}
+
+func (resp *Response) BadRequest(err error) error {
+	apiError, ok := err.(*APIError)
+	if ok {
+		return resp.Text(apiError.Code, apiError.Mesage)
+	}
+	return resp.Text(http.StatusBadRequest, err.Error())
 }
 
 func (resp *Response) Next(req *http.Request) error {

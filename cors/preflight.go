@@ -6,30 +6,45 @@ import (
 	"github.com/nskforward/httpx"
 )
 
-func sendPreflight(cfg Config, origin, maxAge string, req *http.Request, resp *httpx.Response) bool {
+func sendPreflight(cfg Config, origin, maxAge string, req *http.Request, resp *httpx.Response) (bool, error) {
+
+	// not a CORS request
 	if req.Method != http.MethodOptions {
-		return false
+		return false, nil
 	}
 
 	accessMethod := req.Header.Get("Access-Control-Request-Method")
 	accessHeaders := req.Header.Get("Access-Control-Request-Headers")
+
+	// not a CORS preflight request
 	if accessMethod == "" && accessHeaders == "" {
-		return false
+		return false, nil
+	}
+
+	err := sendAllowOrigin(cfg, origin, resp)
+	if err != nil {
+		return false, err
 	}
 
 	if accessMethod != "" {
-		sendAllowMethods(cfg, resp)
-	}
-	if accessHeaders != "" {
-		sendAllowHeaders(cfg, resp)
+		err = sendAllowMethods(cfg, accessMethod, resp)
+		if err != nil {
+			return false, err
+		}
 	}
 
-	sendAllowOrigin(cfg, origin, resp)
+	if accessHeaders != "" {
+		err = sendAllowHeaders(cfg, accessHeaders, resp)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	sendAllowCredentials(cfg, resp)
 	sendExposeHeaders(cfg, resp)
 	sendMaxAge(maxAge, resp)
 
-	return true
+	return true, nil
 }
 
 /*

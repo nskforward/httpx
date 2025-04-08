@@ -17,12 +17,19 @@ func CORS(cfg Config) httpx.Handler {
 			return resp.Next(req)
 		}
 
-		ok := sendPreflight(cfg, origin, maxAge, req, resp)
+		ok, err := sendPreflight(cfg, origin, maxAge, req, resp)
+		if err != nil {
+			return resp.Forbidden(err)
+		}
 		if ok {
 			return resp.NoContent()
 		}
 
-		sendAllowOrigin(cfg, origin, resp)
+		err = sendAllowOrigin(cfg, origin, resp)
+		if err != nil {
+			return resp.Forbidden(err)
+		}
+
 		sendMaxAge(maxAge, resp)
 
 		return resp.Next(req)
