@@ -17,7 +17,7 @@ func Recover(req *http.Request, resp *httpx.Response) error {
 			if err == http.ErrAbortHandler {
 				panic(err)
 			}
-			resp.InternalServerError(err)
+			resp.ServerError(err)
 		}
 	}()
 

@@ -77,11 +77,11 @@ func (router *Router) handleError(resp *Response, err error) {
 			resp.Text(apiErr.Code, apiErr.Mesage)
 			return
 		}
-		resp.InternalServerError(err)
+		resp.ServerError(err)
 		return
 	}
 	if resp.StatusCode() == 0 {
-		resp.InternalServerError(fmt.Errorf("final handler not found"))
+		resp.ServerError(fmt.Errorf("final handler not found"))
 	}
 }
 

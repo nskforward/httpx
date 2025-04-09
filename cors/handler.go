@@ -8,6 +8,7 @@ import (
 
 func CORS(cfg Config) httpx.Handler {
 
+	cfg.AllowOrigins = normalizeOrigins(cfg.AllowOrigins)
 	maxAge := NormalizeMaxAge(cfg)
 
 	return func(req *http.Request, resp *httpx.Response) error {
@@ -20,7 +21,7 @@ func CORS(cfg Config) httpx.Handler {
 		ok, err := sendPreflight(cfg, origin, maxAge, req, resp)
 		if err != nil {
 			resp.Logger().Warn("CORS validation failed", "error", err.Error())
-			return resp.Forbidden(err)
+			return resp.Forbidden(err.Error())
 		}
 		if ok {
 			return resp.NoContent()
@@ -29,7 +30,7 @@ func CORS(cfg Config) httpx.Handler {
 		err = sendAllowOrigin(cfg, origin, resp)
 		if err != nil {
 			resp.Logger().Warn("CORS validation failed", "error", err.Error())
-			return resp.Forbidden(err)
+			return resp.Forbidden(err.Error())
 		}
 
 		sendMaxAge(maxAge, resp)

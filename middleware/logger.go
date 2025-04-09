@@ -20,7 +20,7 @@ func Logger(logHeaders bool) httpx.Handler {
 			if ok {
 				resp.Text(apiErr.Code, apiErr.Mesage)
 			} else {
-				resp.InternalServerError(err)
+				resp.ServerError(err)
 			}
 		}
 

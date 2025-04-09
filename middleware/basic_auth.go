@@ -19,6 +19,6 @@ func BasicAuth(creds map[string]string) httpx.Handler {
 				}
 			}
 		}
-		return resp.Unauthorized()
+		return resp.Unauthorized("require valid credentials")
 	}
 }
