@@ -12,18 +12,18 @@ type Origin struct {
 	wildcard bool
 }
 
-func Parse(s string) (Origin, error) {
+func ParseOrigin(s string) (Origin, error) {
 	u, err := url.Parse(s)
 	if err != nil {
 		return Origin{}, fmt.Errorf("origin has bad format: %w", err)
 	}
 
 	if u.Host == "" {
-		return Origin{}, fmt.Errorf("origin has bad format: %w", err)
+		return Origin{}, fmt.Errorf("origin has bad format: host not specified")
 	}
 
 	if u.Scheme == "" {
-		return Origin{}, fmt.Errorf("origin must contain the scheme")
+		return Origin{}, fmt.Errorf("origin has bad format: scheme not specified")
 	}
 
 	host := u.Host
@@ -35,7 +35,7 @@ func Parse(s string) (Origin, error) {
 	}
 
 	if host == "" {
-		return Origin{}, fmt.Errorf("origin has bad format: %w", err)
+		return Origin{}, fmt.Errorf("origin has bad format: host not specified")
 	}
 
 	wildcard := host[0] == '*'
@@ -51,20 +51,19 @@ func Parse(s string) (Origin, error) {
 	}, nil
 }
 
-func (origin Origin) Equal(s string) bool {
-	u, err := url.Parse(s)
-	if err != nil {
+func (origin Origin) Valid(input *url.URL) bool {
+	if origin.scheme != input.Scheme {
 		return false
 	}
-	if origin.scheme != u.Scheme {
-		return false
-	}
-	host := u.Host
-	switch u.Scheme {
+	host := input.Host
+	switch input.Scheme {
 	case "http":
 		host = strings.TrimSuffix(host, ":80")
 	case "https":
 		host = strings.TrimSuffix(host, ":443")
+	}
+	if origin.host[0] == '*' {
+		return strings.HasSuffix(host, origin.host[1:])
 	}
 	return host == origin.host
 }

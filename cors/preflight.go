@@ -21,25 +21,21 @@ func sendPreflight(cfg Config, origin, maxAge string, req *http.Request, resp *h
 		return false, nil
 	}
 
-	err := sendAllowOrigin(cfg, origin, resp)
-	if err != nil {
-		return false, err
-	}
-
 	if accessMethod != "" {
-		err = sendAllowMethods(cfg, accessMethod, resp)
+		err := sendAllowMethods(cfg, accessMethod, resp)
 		if err != nil {
 			return false, err
 		}
 	}
 
 	if accessHeaders != "" {
-		err = sendAllowHeaders(cfg, accessHeaders, resp)
+		err := sendAllowHeaders(cfg, accessHeaders, resp)
 		if err != nil {
 			return false, err
 		}
 	}
 
+	sendAllowOrigin(resp, origin)
 	sendAllowCredentials(cfg, resp)
 	sendExposeHeaders(cfg, resp)
 	sendMaxAge(maxAge, resp)
