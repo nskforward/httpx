@@ -53,15 +53,13 @@ func (pfs ProtectedFS) Open(name string) (fs.File, error) {
 		GET	/static/2.html  -->  200 OK  /data/static/2.html
 */
 func ServeFolder(dir, indexFile, stripPrefix string) Handler {
-	fi, err := os.Stat(dir)
+
+	path, err := resolvePath(dir)
 	if err != nil {
 		panic(dir)
 	}
-	if !fi.IsDir() {
-		panic(fmt.Errorf("directory cannot be a file: %s", dir))
-	}
 
-	fserver := http.FileServer(http.FS(ProtectedFS{fs: os.DirFS(dir), indexFile: indexFile}))
+	fserver := http.FileServer(http.FS(ProtectedFS{fs: os.DirFS(path), indexFile: indexFile}))
 
 	return func(req *http.Request, resp *Response) error {
 		if stripPrefix != "" {
@@ -71,4 +69,21 @@ func ServeFolder(dir, indexFile, stripPrefix string) Handler {
 		fserver.ServeHTTP(resp.w, req)
 		return nil
 	}
+}
+
+func resolvePath(path string) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+
+	if info.Mode()&os.ModeSymlink != 0 {
+		return filepath.EvalSymlinks(path)
+	}
+
+	if !info.IsDir() {
+		return "", fmt.Errorf("directory cannot be a file: %s", path)
+	}
+
+	return path, nil
 }
