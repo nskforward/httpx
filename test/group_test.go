@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestGroup(t *testing.T) {
-	app := httpx.NewRouter(nil)
+	app := httpx.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	app.Use(buildMiddleware("router-mw-1"), buildMiddleware("router-mw-2"))
 

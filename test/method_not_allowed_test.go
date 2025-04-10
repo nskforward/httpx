@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestMethodNotAllowed(t *testing.T) {
-	router := httpx.NewRouter(nil)
+	router := httpx.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	router.Use(func(req *http.Request, resp *httpx.Response) error {
 		fmt.Println("event:", time.Now().Format("15:04:05.000"), req.Method, req.URL.Path)
 		err := resp.Next(req)

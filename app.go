@@ -51,8 +51,13 @@ func (app *App) Run() error {
 	}()
 
 	if app.tlsConfig != nil {
-		return server.ListenAndServeTLS("", "")
+		err := server.ListenAndServeTLS("", "")
+		if err != http.ErrServerClosed {
+			return err
+		}
+		return nil
 	}
+
 	err := server.ListenAndServe()
 	if err != http.ErrServerClosed {
 		return err
