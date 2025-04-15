@@ -46,6 +46,10 @@ func (resp *Response) SetHeader(name, value string) {
 	resp.w.Header().Set(name, value)
 }
 
+func (resp *Response) SetContentType(contentType string) {
+	resp.SetHeader("Content-Type", contentType)
+}
+
 func (resp *Response) LoggingWith(args ...any) {
 	resp.logger = resp.logger.With(args...)
 }
@@ -80,14 +84,14 @@ func (resp *Response) Next(req *http.Request) error {
 }
 
 func (resp *Response) Text(code int, msg string) error {
-	resp.SetHeader("Content-Type", "Content-Type: text/plain; charset=UTF-8")
+	resp.SetContentType("text/plain; charset=UTF-8")
 	resp.w.WriteHeader(code)
 	io.WriteString(resp.w, msg)
 	return nil
 }
 
 func (resp *Response) JSON(code int, obj any) error {
-	resp.SetHeader("Content-Type", "application/json; charset=utf-8")
+	resp.SetContentType("application/json; charset=utf-8")
 	resp.w.WriteHeader(code)
 	return json.NewEncoder(resp.w).Encode(obj)
 }
