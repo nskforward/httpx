@@ -88,7 +88,7 @@ func (router *Router) handleError(resp *Response, err error) {
 func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h, pattern := router.mux.Handler(r)
 	if pattern != "" {
-		h.ServeHTTP(w, r)
+		router.mux.ServeHTTP(w, r)
 		return
 	}
 	router.executeBadHandler(w, r, func(req *http.Request, resp *Response) error {
