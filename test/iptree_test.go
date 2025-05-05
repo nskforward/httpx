@@ -1,0 +1,46 @@
+package test
+
+import (
+	"testing"
+
+	"github.com/nskforward/httpx"
+)
+
+func TestIPTree(t *testing.T) {
+	database := [][3]string{
+		{"1.0.0.0/24", "Australia", "1.0.0.101"},
+		{"1.0.1.0/24", "China", "1.0.1.101"},
+		{"1.0.5.213", "Iran", "1.0.5.213"},
+		{"1.0.16.0/24", "Japan", "1.0.16.101"},
+		{"1.0.128.0/17", "Thailand", "1.0.128.101"},
+		{"1.1.0.254", "Italy", "1.1.0.254"},
+		{"1.1.2.1", "Vietnam", "1.1.2.1"},
+		{"1.1.2.10/31", "Singapore", "1.1.2.10"},
+		{"1.1.3.1", "Bulgaria", "1.1.3.1"},
+		{"1.1.3.3", "Mexico", "1.1.3.3"},
+		{"1.1.6.22/31", "Turkey", "1.1.6.22"},
+		{"1.1.10.2", "South Korea", "1.1.10.2"},
+		{"1.1.20.22", "Bangladesh", "1.1.20.22"},
+		{"1.1.31.0/24", "Poland", "1.1.31.101"},
+		{"1.1.61.0/24", "Bulgaria", "1.1.61.101"},
+		{"1.2.72.0/24", "Switzerland", "1.2.72.101"},
+		{"1.3.3.0/24", "Seychelles", "1.3.3.101"},
+		{"23.0.163.0/24", "Canada", "23.0.163.101"},
+		{"1.6.8.0/22", "India", "1.6.8.101"},
+		{"22.0.0.0/8", "United States", "22.1.0.101"},
+		{"240e:47b:1868:1c00::/54", "Japan", "240e:47b:1868:1c00:1c00:1c00:1c00:1c00"},
+	}
+	var node httpx.IPTree
+	for _, pool := range database {
+		node.Append(pool[0], pool[1])
+	}
+	for _, pool := range database {
+		val, err := node.Search(pool[2])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if val == nil || val.(string) != pool[1] {
+			t.Fatalf("ip %s expect contry %s, actual got %s", pool[2], pool[1], val)
+		}
+	}
+}
