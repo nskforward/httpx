@@ -30,18 +30,15 @@ func TestIPTreeBasic(t *testing.T) {
 		{"22.0.0.0/8", "United States", "22.1.0.101"},
 		{"240e:47b:1868:1c00::/54", "Japan", "240e:47b:1868:1c00:1c00:1c00:1c00:1c00"},
 	}
-	var node httpx.IPTree
+	var tree httpx.IPTree
 	for _, pool := range database {
-		err := node.Append(pool[0], pool[1])
+		err := tree.Add(pool[0], pool[1])
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 	for _, pool := range database {
-		val, err := node.Search(pool[2])
-		if err != nil {
-			t.Fatal(err)
-		}
+		val := tree.Search(pool[2])
 		if val == nil || val.(string) != pool[1] {
 			t.Fatalf("ip %s expect contry %s, actual got %s", pool[2], pool[1], val)
 		}
@@ -69,18 +66,15 @@ func TestIPTreeAdvance(t *testing.T) {
 		{"2001:218:0:1000:0:1::/96", "17", "2001:218:0:1000:0:1::1"},
 		{"2001:218:0:1000:1::/80", "18", "2001:218:0:1000:1::1"},
 	}
-	var node httpx.IPTree
+	var tree httpx.IPTree
 	for _, pool := range database {
-		err := node.Append(pool[0], pool[1])
+		err := tree.Add(pool[0], pool[1])
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 	for _, pool := range database {
-		val, err := node.Search(pool[2])
-		if err != nil {
-			t.Fatal(err)
-		}
+		val := tree.Search(pool[2])
 		if val == nil || val.(string) != pool[1] {
 			t.Fatalf("ip %s expect contry %s, actual got %s", pool[2], pool[1], val)
 		}

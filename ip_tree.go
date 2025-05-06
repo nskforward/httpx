@@ -2,183 +2,169 @@ package httpx
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 )
 
 type IPTree struct {
-	parent *IPTree
-	b0     *IPTree
-	b1     *IPTree
-	value  any
+	root  *ipTreeNode
+	count int64
 }
 
-var (
-	ErrNodeAlreadyExists = errors.New("address already used")
-	ErrBadInputFormat    = errors.New("bad address format")
-)
-
-func (ipTree *IPTree) Search(ip string) (any, error) {
-	netIP := net.ParseIP(ip)
-	if netIP == nil {
-		return nil, ErrBadInputFormat
-	}
-
-	ipv4 := netIP.To4()
-	if ipv4 != nil {
-		netIP = ipv4
-	}
-
-	var i int
-	bit := byte(0x80)
-	node := ipTree
-
-	for node != nil {
-		if node.value != nil {
-			return node.value, nil
-		}
-
-		if netIP[i]&bit != 0 {
-			node = node.b1
-		} else {
-			node = node.b0
-		}
-
-		if bit >>= 1; bit == 0 {
-			i, bit = i+1, byte(0x80)
-			if i >= len(netIP) {
-				if node != nil {
-					return node.value, nil
-				}
-				break
-			}
-		}
-	}
-	return nil, nil
+type ipTreeNode struct {
+	left  *ipTreeNode // 0
+	right *ipTreeNode // 1
+	value any
 }
 
-func (ipTree *IPTree) Append(addr string, value any) error {
-	if strings.Contains(addr, "/") {
-		return ipTree.appendCIDR(addr, value)
+func (tree *IPTree) Search(addr string) any {
+	if tree.root == nil {
+		return nil
 	}
-	return ipTree.appendIP(addr, value)
-}
-
-func (ipTree *IPTree) appendIP(addr string, value any) error {
 	ip := net.ParseIP(addr)
 	if ip == nil {
-		return ErrBadInputFormat
+		return nil
 	}
+	return tree.root.search(ip)
+}
 
+func (tree *IPTree) Count() int64 {
+	return tree.count
+}
+
+func (tree *IPTree) Dump() {
+	tree.root.dump(0)
+}
+
+func (tree *IPTree) Add(addr string, val any) error {
+	if tree.root == nil {
+		tree.root = &ipTreeNode{}
+	}
+	if strings.Contains(addr, "/") {
+		_, cidr, err := net.ParseCIDR(addr)
+		if err != nil {
+			return err
+		}
+		err = tree.root.addCIDR(cidr, val)
+		if err == nil {
+			tree.count++
+		}
+		return err
+	}
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return fmt.Errorf("cannot parse ip")
+	}
+	err := tree.root.addIP(ip, val)
+	if err == nil {
+		tree.count++
+	}
+	return err
+}
+
+func (node *ipTreeNode) addIP(ip net.IP, value any) error {
 	ipv4 := ip.To4()
 	if ipv4 != nil {
 		ip = ipv4
 	}
-
-	node := ipTree
-	next := node
-	bit := byte(0x80)
-	i := 0
-
-	for {
-		if ip[i]&bit != 0 {
-			next = node.b1
-		} else {
-			next = node.b0
-		}
-		if next == nil {
-			break
-		}
-		node = next
-		if bit >>= 1; bit == 0 {
-			if i++; i == len(ip) {
-				break
-			}
-			bit = byte(0x80)
+	current := node
+	for _, b := range ip {
+		for bit := range 8 {
+			bitFilled := isBitSet(b, bit)
+			current = current.nextNode(bitFilled)
 		}
 	}
-
-	if next != nil {
-		if node.value != nil {
-			return ErrNodeAlreadyExists
-		}
-		node.value = value
-		return nil
+	if current.value != nil {
+		return errors.New("ip adress already in use")
 	}
-
-	for {
-		next = &IPTree{}
-		next.parent = node
-		if ip[i]&bit != 0 {
-			node.b1 = next
-		} else {
-			node.b0 = next
-		}
-		node = next
-		if bit >>= 1; bit == 0 {
-			if i++; i == len(ip) {
-				break
-			}
-			bit = byte(0x80)
-		}
-	}
-	node.value = value
+	current.value = value
 	return nil
 }
 
-func (ipTree *IPTree) appendCIDR(addr string, value any) error {
-	_, network, err := net.ParseCIDR(addr)
-	if err != nil {
-		return err
-	}
-
-	node := ipTree
-	next := node
-	bit := byte(0x80)
-	i := 0
-
-	for bit&network.Mask[i] != 0 {
-		if network.IP[i]&bit != 0 {
-			next = node.b1
-		} else {
-			next = node.b0
-		}
-		if next == nil {
-			break
-		}
-		node = next
-		if bit >>= 1; bit == 0 {
-			if i++; i == len(network.IP) {
-				break
+func (node *ipTreeNode) addCIDR(cidr *net.IPNet, value any) error {
+	current := node
+loop:
+	for i, b := range cidr.Mask {
+		for bit := range 8 {
+			if !isBitSet(b, bit) {
+				if current.value != nil {
+					return fmt.Errorf("cidr adress already in use")
+				}
+				current.value = value
+				break loop
 			}
-			bit = byte(0x80)
+			bitFilled := isBitSet(cidr.IP[i], bit)
+			current = current.nextNode(bitFilled)
 		}
 	}
-
-	if next != nil {
-		if node.value != nil {
-			return ErrNodeAlreadyExists
-		}
-		node.value = value
-		return nil
-	}
-
-	for bit&network.Mask[i] != 0 {
-		next = &IPTree{}
-		next.parent = node
-		if network.IP[i]&bit != 0 {
-			node.b1 = next
-		} else {
-			node.b0 = next
-		}
-		node = next
-		if bit >>= 1; bit == 0 {
-			if i++; i == len(network.IP) {
-				break
-			}
-			bit = byte(0x80)
-		}
-	}
-	node.value = value
 	return nil
+}
+
+func (node *ipTreeNode) search(ip net.IP) any {
+	ipv4 := ip.To4()
+	if ipv4 != nil {
+		ip = ipv4
+	}
+	current := node
+	for _, b := range ip {
+		for bit := range 8 {
+			bitFilled := isBitSet(b, bit)
+			if bitFilled && current.right != nil {
+				current = current.right
+				if current.value != nil {
+					return current.value
+				}
+				continue
+			}
+			if !bitFilled && current.left != nil {
+				current = current.left
+				if current.value != nil {
+					return current.value
+				}
+				continue
+			}
+			return nil
+		}
+	}
+	return nil
+}
+
+func (node *ipTreeNode) dump(level int) {
+	if node.left != nil {
+		fmt.Print(strings.Repeat(".", level))
+		fmt.Print("0")
+		if node.left.value != nil {
+			fmt.Printf(" (%s)", node.left.value)
+		}
+		fmt.Println()
+		node.left.dump(level + 1)
+	}
+	if node.right != nil {
+		fmt.Print(strings.Repeat(".", level))
+		fmt.Print("1")
+		if node.right.value != nil {
+			fmt.Printf(" (%s)", node.right.value)
+		}
+		fmt.Println()
+		node.right.dump(level + 1)
+	}
+}
+
+func (node *ipTreeNode) nextNode(isSet bool) *ipTreeNode {
+	if isSet {
+		if node.right == nil {
+			node.right = &ipTreeNode{}
+		}
+		return node.right
+	} else {
+		if node.left == nil {
+			node.left = &ipTreeNode{}
+		}
+		return node.left
+	}
+}
+
+func isBitSet(b byte, bit int) bool {
+	return b&(1<<(7-bit)) != 0
 }
