@@ -29,6 +29,8 @@ func TestIPTreeBasic(t *testing.T) {
 		{"1.6.8.0/22", "India", "1.6.8.101"},
 		{"22.0.0.0/8", "United States", "22.1.0.101"},
 		{"240e:47b:1868:1c00::/54", "Japan", "240e:47b:1868:1c00:1c00:1c00:1c00:1c00"},
+		{"2c01:8000::/17", "Mauritius", "2c01:8000::1c00:1c00"},
+		{"2c0f:8000::/18", "Mauritius", "2c0f:8000::1c00:1c00"},
 	}
 	var tree httpx.IPTree
 	for _, pool := range database {
@@ -79,4 +81,14 @@ func TestIPTreeAdvance(t *testing.T) {
 			t.Fatalf("ip %s expect contry %s, actual got %s", pool[2], pool[1], val)
 		}
 	}
+}
+
+func TestShortIPv6(t *testing.T) {
+	addr := "2400:800::/32"
+	var tree httpx.IPTree
+	err := tree.Add(addr, "RU")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree.Dump()
 }
