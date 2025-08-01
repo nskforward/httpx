@@ -6,21 +6,13 @@ import (
 )
 
 type Multiplexer struct {
-	root         *Node
-	errorHandler func(w http.ResponseWriter, r *http.Request, code int)
+	root *Node
 }
 
 func NewMultiplexer() *Multiplexer {
 	return &Multiplexer{
 		root: NewNode(nil, Token{Kind: Sep}),
-		errorHandler: func(w http.ResponseWriter, r *http.Request, code int) {
-			http.Error(w, http.StatusText(code), code)
-		},
 	}
-}
-
-func (m *Multiplexer) OnError(h func(w http.ResponseWriter, r *http.Request, code int)) {
-	m.errorHandler = h
 }
 
 func (m *Multiplexer) HandleFunc(pattern string, handler func(w http.ResponseWriter, r *http.Request)) {
@@ -58,34 +50,37 @@ func (m *Multiplexer) Handle(pattern string, handler http.Handler) {
 }
 
 func (m *Multiplexer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	handler, errorCode := m.search(r)
+	if errorCode > 0 {
+		errorHandler(errorCode).ServeHTTP(w, r)
+		return
+	}
+	handler.ServeHTTP(w, r)
+}
+
+func (m *Multiplexer) search(r *http.Request) (http.Handler, int) {
 	methodNum := MethodToUInt8(r.Method)
 	child, exactly := m.root.GetLongest(r.URL.Path, r.SetPathValue)
 	if child == nil {
-		m.errorHandler(w, r, 404)
-		return
+		return nil, 404
 	}
 	if exactly {
 		if child.value != nil {
 			h := child.value.Get(methodNum)
 			if h != nil {
-				h.ServeHTTP(w, r)
-				return
+				return h, 0
 			}
-			m.errorHandler(w, r, 405)
-			return
+			return nil, 405
 		}
 	}
-
 	if child.wildcard != nil {
 		h := child.wildcard.Get(methodNum)
 		if h == nil {
-			m.errorHandler(w, r, 405)
-			return
+			return nil, 405
 		}
-		h.ServeHTTP(w, r)
-		return
+		return h, 0
 	}
-	m.errorHandler(w, r, 404)
+	return nil, 404
 }
 
 func (m *Multiplexer) Dump() {
