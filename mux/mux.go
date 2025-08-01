@@ -19,7 +19,7 @@ func NewMultiplexer() *Multiplexer {
 	}
 }
 
-func (m *Multiplexer) SetErrorHandler(h func(w http.ResponseWriter, r *http.Request, code int)) {
+func (m *Multiplexer) OnError(h func(w http.ResponseWriter, r *http.Request, code int)) {
 	m.errorHandler = h
 }
 
