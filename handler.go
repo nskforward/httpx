@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"slices"
@@ -18,7 +19,11 @@ func castHandler(ro *Router, h HandlerFunc, mws []Middleware) http.HandlerFunc {
 		for _, mw := range slices.Backward(ro.middlewares) {
 			final = mw(final)
 		}
-		logger := ro.logger.With("id", GetRequestID(r))
+		var logger *slog.Logger
+		if ro.logger != nil {
+			logger = ro.logger.With("id", GetRequestID(r))
+		}
+
 		resp := newResponse(w, logger)
 		err := final(resp, r)
 		if err != nil {

@@ -15,13 +15,12 @@ type Router struct {
 }
 
 func NewRouter(logger *slog.Logger) *Router {
-	ro := &Router{
+	return &Router{
 		logger:       logger,
 		multiplexer:  mux.NewMultiplexer(),
 		middlewares:  make([]Middleware, 0, 8),
 		errorHandler: defaultErrorHandler,
 	}
-	return ro
 }
 
 func (ro *Router) ErrorHandler(h ErrorHandler) {
@@ -30,6 +29,7 @@ func (ro *Router) ErrorHandler(h ErrorHandler) {
 
 func (ro *Router) Group(mws ...Middleware) *Router {
 	return &Router{
+		logger:       ro.logger,
 		multiplexer:  ro.multiplexer,
 		middlewares:  append(ro.middlewares, mws...),
 		errorHandler: ro.errorHandler,

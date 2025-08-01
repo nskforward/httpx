@@ -6,12 +6,13 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
 
 func TestRouter(t *testing.T) {
-	ro := NewRouter(slog.Default())
+	ro := NewRouter(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 	ro.Use(getMiddleware("middleware 1"))
 
 	group := ro.Group(getMiddleware("middleware 2"))
