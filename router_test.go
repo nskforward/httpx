@@ -3,6 +3,7 @@ package httpx
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestRouter(t *testing.T) {
-	ro := NewRouter()
+	ro := NewRouter(slog.Default())
 	ro.Use(getMiddleware("middleware 1"))
 
 	group := ro.Group(getMiddleware("middleware 2"))

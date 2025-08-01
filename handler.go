@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 	"slices"
+
+	"github.com/google/uuid"
 )
 
 func castHandler(ro *Router, h HandlerFunc, mws []Middleware) http.HandlerFunc {
@@ -16,7 +18,8 @@ func castHandler(ro *Router, h HandlerFunc, mws []Middleware) http.HandlerFunc {
 		for _, mw := range slices.Backward(ro.middlewares) {
 			final = mw(final)
 		}
-		resp := newResponse(w)
+		logger := ro.logger.With("id", GetRequestID(r))
+		resp := newResponse(w, logger)
 		err := final(resp, r)
 		if err != nil {
 			ro.errorHandler(resp, r, err)
@@ -29,4 +32,13 @@ func defaultErrorHandler(w *Response, r *http.Request, err error) {
 	if !w.HeadersSent() {
 		w.SendShortError(http.StatusInternalServerError)
 	}
+}
+
+func GetRequestID(r *http.Request) string {
+	requestID := r.Header.Get("X-Request-Id")
+	if requestID == "" {
+		requestID = uuid.NewString()
+		r.Header.Set("X-Request-Id", requestID)
+	}
+	return requestID
 }

@@ -1,19 +1,22 @@
 package httpx
 
 import (
+	"log/slog"
 	"net/http"
 )
 
 type Response struct {
 	http.ResponseWriter
+	logger              *slog.Logger
 	status              int
 	size                int64
 	onBeforeHeadersSent []func(resp *Response)
 }
 
-func newResponse(w http.ResponseWriter) *Response {
+func newResponse(w http.ResponseWriter, logger *slog.Logger) *Response {
 	return &Response{
 		ResponseWriter:      w,
+		logger:              logger,
 		status:              0,
 		onBeforeHeadersSent: make([]func(resp *Response), 8),
 	}
@@ -29,6 +32,10 @@ func (ww *Response) Size() int64 {
 
 func (ww *Response) Status() int {
 	return ww.status
+}
+
+func (ww *Response) Logger() *slog.Logger {
+	return ww.logger
 }
 
 func (ww *Response) HeadersSent() bool {

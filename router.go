@@ -1,19 +1,22 @@
 package httpx
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/nskforward/httpx/mux"
 )
 
 type Router struct {
+	logger       *slog.Logger
 	multiplexer  *mux.Multiplexer
 	middlewares  []Middleware
 	errorHandler ErrorHandler
 }
 
-func NewRouter() *Router {
+func NewRouter(logger *slog.Logger) *Router {
 	ro := &Router{
+		logger:       logger,
 		multiplexer:  mux.NewMultiplexer(),
 		middlewares:  make([]Middleware, 0, 8),
 		errorHandler: defaultErrorHandler,
