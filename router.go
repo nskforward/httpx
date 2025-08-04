@@ -1,14 +1,15 @@
 package httpx
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/nskforward/httpx/mux"
 )
 
 type Router struct {
-	logger       *slog.Logger
 	multiplexer  *mux.Multiplexer
 	middlewares  []Middleware
 	errorHandler ErrorHandler
@@ -16,7 +17,6 @@ type Router struct {
 
 func NewRouter(logger *slog.Logger) *Router {
 	return &Router{
-		logger:      logger,
 		multiplexer: mux.NewMultiplexer(),
 		middlewares: make([]Middleware, 0, 8),
 	}
@@ -28,7 +28,6 @@ func (ro *Router) ErrorHandler(h ErrorHandler) {
 
 func (ro *Router) Group(mws ...Middleware) *Router {
 	return &Router{
-		logger:       ro.logger,
 		multiplexer:  ro.multiplexer,
 		middlewares:  append(ro.middlewares, mws...),
 		errorHandler: ro.errorHandler,
@@ -56,7 +55,7 @@ func (ro *Router) handlerError(w *Response, r *http.Request, err error) {
 		ro.errorHandler(w, r, err)
 		return
 	}
-	ro.logger.Error("httpx: unhandler error during the route", "method", r.Method, "path", r.URL.Path, "error", err)
+	fmt.Fprintln(os.Stderr, "httpx: unhandler error during the route", r.Method, r.URL.Path, ">", err)
 	if !w.HeadersSent() {
 		w.SendShortError(http.StatusInternalServerError)
 	}
