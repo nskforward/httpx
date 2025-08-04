@@ -57,7 +57,11 @@ func (ro *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for _, mw := range slices.Backward(ro.middlewares) {
 			finalHandler = mw(finalHandler)
 		}
-		finalHandler(newResponse(w), r)
+		resp := newResponse(w)
+		err := finalHandler(resp, r)
+		if err != nil {
+			ro.handlerError(resp, r, err)
+		}
 		return
 	}
 	h.ServeHTTP(w, r)
