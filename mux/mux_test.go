@@ -42,9 +42,13 @@ func TestMux(t *testing.T) {
 	fmt.Println(r.URL.Path, "-->", body, t2)
 }
 
-func getResponseBody(m http.Handler, r *http.Request) (string, error) {
+func getResponseBody(m *Multiplexer, r *http.Request) (string, error) {
 	w := httptest.NewRecorder()
-	m.ServeHTTP(w, r)
+	h, code := m.Search(w, r)
+	if code > 0 {
+		return "", fmt.Errorf("bad response code: %d", code)
+	}
+	h.ServeHTTP(w, r)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := io.ReadAll(res.Body)

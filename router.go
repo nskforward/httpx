@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 
 	"github.com/nskforward/httpx/mux"
 )
@@ -47,7 +48,19 @@ func (ro *Router) HandleFunc(pattern string, handler HandlerFunc, mws ...Middlew
 }
 
 func (ro *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ro.multiplexer.ServeHTTP(w, r)
+	h, errCode := ro.multiplexer.Search(w, r)
+	if errCode > 0 {
+		finalHandler := func(w *Response, r *http.Request) error {
+			http.Error(w, http.StatusText(errCode), errCode)
+			return nil
+		}
+		for _, mw := range slices.Backward(ro.middlewares) {
+			finalHandler = mw(finalHandler)
+		}
+		finalHandler(newResponse(w), r)
+		return
+	}
+	h.ServeHTTP(w, r)
 }
 
 func (ro *Router) handlerError(w *Response, r *http.Request, err error) {

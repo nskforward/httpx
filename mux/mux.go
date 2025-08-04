@@ -49,13 +49,8 @@ func (m *Multiplexer) Handle(pattern string, handler http.Handler) {
 	curr.SetValue(method, handler)
 }
 
-func (m *Multiplexer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	handler, errorCode := m.search(r)
-	if errorCode > 0 {
-		errorHandler(errorCode).ServeHTTP(w, r)
-		return
-	}
-	handler.ServeHTTP(w, r)
+func (m *Multiplexer) Search(w http.ResponseWriter, r *http.Request) (http.Handler, int) {
+	return m.search(r)
 }
 
 func (m *Multiplexer) search(r *http.Request) (http.Handler, int) {
