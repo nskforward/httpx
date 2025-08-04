@@ -1,27 +1,40 @@
 package httpx
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 )
 
+type contextParam string
+
+const (
+	userKey contextParam = "user"
+)
+
 func TestRouter(t *testing.T) {
-	ro := NewRouter(slog.New(slog.NewTextHandler(os.Stdout, nil)))
-	ro.Use(getMiddleware("middleware 1"))
+	ro := NewRouter()
+	ro.Use(func(next HandlerFunc) HandlerFunc {
+		return func(w *Response, r *http.Request) error {
+			return next(w, r.WithContext(context.WithValue(r.Context(), userKey, "Ivan")))
+		}
+	})
 
-	group := ro.Group(getMiddleware("middleware 2"))
+	ro.HandleFunc("/users/", func(w *Response, r *http.Request) error {
+		user := r.Context().Value(userKey)
+		if user == nil {
+			w.SendShortError(400)
+			return fmt.Errorf("user cannot be empty")
+		}
+		io.WriteString(w, fmt.Sprintf("user: %s", user))
+		return nil
+	})
 
-	ro.HandleFunc("/users/", getHandler("ANY /users/", nil), getMiddleware("middleware 3.1"))
-	group.HandleFunc("POST /users", getHandler("POST /users", nil), getMiddleware("middleware 3.2"))
-	ro.HandleFunc("GET /users/{action}/{id}", getHandler("GET /users/{action}/{id}", []string{"action", "id"}), getMiddleware("middleware 3.3"))
-
-	r := httptest.NewRequest("POST", "/users", nil)
+	r := httptest.NewRequest("GET", "/users/123", nil)
 	t1 := time.Now()
 	body, err := getResponseBody(ro, r)
 	t2 := time.Since(t1)

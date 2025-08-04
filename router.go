@@ -2,7 +2,6 @@ package httpx
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"slices"
@@ -16,7 +15,7 @@ type Router struct {
 	errorHandler ErrorHandler
 }
 
-func NewRouter(logger *slog.Logger) *Router {
+func NewRouter() *Router {
 	return &Router{
 		multiplexer: mux.NewMultiplexer(),
 		middlewares: make([]Middleware, 0, 8),
