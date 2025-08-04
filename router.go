@@ -16,10 +16,9 @@ type Router struct {
 
 func NewRouter(logger *slog.Logger) *Router {
 	return &Router{
-		logger:       logger,
-		multiplexer:  mux.NewMultiplexer(),
-		middlewares:  make([]Middleware, 0, 8),
-		errorHandler: defaultErrorHandler,
+		logger:      logger,
+		multiplexer: mux.NewMultiplexer(),
+		middlewares: make([]Middleware, 0, 8),
 	}
 }
 
@@ -50,4 +49,15 @@ func (ro *Router) HandleFunc(pattern string, handler HandlerFunc, mws ...Middlew
 
 func (ro *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ro.multiplexer.ServeHTTP(w, r)
+}
+
+func (ro *Router) handlerError(w *Response, r *http.Request, err error) {
+	if ro.errorHandler != nil {
+		ro.errorHandler(w, r, err)
+		return
+	}
+	ro.logger.Error("httpx: unhandler error during the route", "method", r.Method, "path", r.URL.Path, "error", err)
+	if !w.HeadersSent() {
+		w.SendShortError(http.StatusInternalServerError)
+	}
 }
