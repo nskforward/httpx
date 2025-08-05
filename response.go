@@ -62,6 +62,6 @@ func (ww *Response) Flusher() http.Flusher {
 	return flusher
 }
 
-func (ww *Response) SendShortError(code int) {
-	http.Error(ww.ResponseWriter, http.StatusText(code), code)
+func (ww *Response) SendError(code int, msg string) {
+	http.Error(ww.ResponseWriter, msg, code)
 }
