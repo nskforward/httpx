@@ -73,6 +73,6 @@ func (ro *Router) handlerError(w *Response, r *http.Request, err error) {
 	}
 	fmt.Fprintln(os.Stderr, "httpx: unhandler error during the route", r.Method, r.URL.Path, ">", err)
 	if !w.HeadersSent() {
-		w.SendError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		w.SendText(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 }

@@ -27,7 +27,7 @@ func TestRouter(t *testing.T) {
 	ro.HandleFunc("/users/", func(w *Response, r *http.Request) error {
 		user := r.Context().Value(userKey)
 		if user == nil {
-			w.SendError(400, "Bad Request")
+			w.SendText(400, "Bad Request")
 			return fmt.Errorf("user cannot be empty")
 		}
 		io.WriteString(w, fmt.Sprintf("user: %s", user))

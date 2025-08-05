@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"encoding/json"
 	"net/http"
 )
 
@@ -62,7 +63,12 @@ func (ww *Response) Flusher() http.Flusher {
 	return flusher
 }
 
-func (ww *Response) SendError(code int, msg string) error {
+func (ww *Response) SendText(code int, msg string) error {
 	http.Error(ww.ResponseWriter, msg, code)
 	return nil
+}
+
+func (ww *Response) SendJSON(code int, object any) error {
+	ww.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(ww).Encode(object)
 }
