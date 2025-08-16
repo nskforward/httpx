@@ -64,11 +64,12 @@ func (ww *Response) Flusher() http.Flusher {
 }
 
 func (ww *Response) SendText(code int, msg string) error {
-	http.Error(ww.ResponseWriter, msg, code)
+	http.Error(ww, msg, code)
 	return nil
 }
 
 func (ww *Response) SendJSON(code int, object any) error {
 	ww.Header().Set("Content-Type", "application/json; charset=utf-8")
+	ww.WriteHeader(code)
 	return json.NewEncoder(ww).Encode(object)
 }
